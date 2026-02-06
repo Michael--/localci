@@ -207,6 +207,24 @@ describe('ci-runner-cli smoke', () => {
     expect(stdout).toContain('stdout:')
     expect(stdout).toContain('prepare step passed')
   })
+
+  it('runs typed ts config with ci-runner-cli config types', async () => {
+    const typedConfigPath = resolve(smokeRoot, 'smoke', 'cli.pretty.typed.config.ts')
+
+    const result = await runCli([
+      '--config',
+      typedConfigPath,
+      '--cwd',
+      smokeRoot,
+      '--format',
+      'pretty',
+    ])
+    const stdout = normalizePrettyOutput(result.stdout)
+
+    expect(result.exitCode).toBe(0)
+    expect(stdout).toContain('Result: PASS')
+    expect(stdout).toContain('Summary: total=2 passed=2 skipped=0 failed=0 timedOut=0')
+  })
 })
 
 const writeSmokeConfig = async (steps: readonly SmokeConfigStep[]): Promise<string> => {

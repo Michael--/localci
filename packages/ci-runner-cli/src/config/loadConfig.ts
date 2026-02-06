@@ -69,8 +69,7 @@ const loadTypeScriptConfig = async (configFilePath: string): Promise<unknown> =>
   const source = await readFile(configFilePath, 'utf8')
   const transpiled = ts.transpileModule(source, {
     compilerOptions: {
-      module: ts.ModuleKind.NodeNext,
-      moduleResolution: ts.ModuleResolutionKind.NodeNext,
+      module: ts.ModuleKind.ESNext,
       target: ts.ScriptTarget.ES2022,
       esModuleInterop: true,
     },
