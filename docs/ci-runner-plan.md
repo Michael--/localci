@@ -37,6 +37,8 @@
 
 - [ ] Add config loading (`ci.config.ts` / `ci.config.json`).
 - [ ] Map config to core runner model.
+- [ ] Support conditional steps via config/env (e.g. integration tests toggle).
+- [ ] Support per-step optional policy from config (`warn but continue`).
 - [ ] Add flags (`--format`, `--verbose`, `--watch`, `--fail-fast`).
 - [ ] Keep compact output on success; emit full details on failure.
 
@@ -44,6 +46,7 @@
 
 - [ ] `pretty` formatter parity with current script behavior.
 - [x] `json` formatter for machine consumers.
+- [ ] Ship default parser presets for vitest/playwright summaries.
 - [ ] `junit` formatter (optional).
 - [ ] GitHub Actions summary formatter (optional).
 
