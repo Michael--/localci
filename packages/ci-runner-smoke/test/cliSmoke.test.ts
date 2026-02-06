@@ -48,12 +48,19 @@ describe('ci-runner-cli smoke', () => {
       '--format',
       'pretty',
     ])
-    const stdout = stripAnsi(result.stdout)
+    const stdout = normalizePrettyOutput(result.stdout)
 
     expect(result.exitCode).toBe(0)
-    expect(stdout).toContain('Result: PASS')
-    expect(stdout).not.toContain('stdout:')
-    expect(stdout).not.toContain('stderr:')
+    expect(stdout).toBe(
+      [
+        'ci-runner: executing 1 steps',
+        '-> Prepare',
+        '✓ Prepare <duration>',
+        '',
+        'Summary: total=1 passed=1 skipped=0 failed=0 timedOut=0 duration=<duration>',
+        'Result: PASS',
+      ].join('\n')
+    )
   })
 
   it('prints detailed output on pretty failure', async () => {
@@ -73,12 +80,21 @@ describe('ci-runner-cli smoke', () => {
       '--format',
       'pretty',
     ])
-    const stdout = stripAnsi(result.stdout)
+    const stdout = normalizePrettyOutput(result.stdout)
 
     expect(result.exitCode).toBe(1)
-    expect(stdout).toContain('Result: FAIL')
-    expect(stdout).toContain('stderr:')
-    expect(stdout).toContain('optional step failed intentionally')
+    expect(stdout).toBe(
+      [
+        'ci-runner: executing 1 steps',
+        '-> Failing Check',
+        '✗ Failing Check failed (command_failed, <duration>)',
+        '  stderr:',
+        '    optional step failed intentionally',
+        '',
+        'Summary: total=1 passed=0 skipped=0 failed=1 timedOut=0 duration=<duration>',
+        'Result: FAIL',
+      ].join('\n')
+    )
   })
 
   it('extracts vitest and playwright metrics in json output', async () => {
@@ -184,4 +200,12 @@ const runCli = async (args: readonly string[]): Promise<CliRunResult> => {
 const stripAnsi = (value: string): string => {
   // eslint-disable-next-line no-control-regex
   return value.replace(/\x1b\[[0-9;]*m/g, '')
+}
+
+const normalizePrettyOutput = (value: string): string => {
+  const withoutAnsi = stripAnsi(value)
+  return withoutAnsi
+    .replace(/\b\d+ms\b/g, '<duration>')
+    .replace(/duration=\d+ms/g, 'duration=<duration>')
+    .trimEnd()
 }
