@@ -11,7 +11,7 @@ export default defineConfig({
       fileName: 'cli',
     },
     rollupOptions: {
-      external: [...builtinModules, /^node:/, /^@localci\/ci-runner-core$/],
+      external: [...builtinModules, /^node:/, /^@localci\/ci-runner-core$/, /^typescript$/],
     },
   },
 })

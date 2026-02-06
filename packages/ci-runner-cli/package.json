@@ -22,7 +22,8 @@
     "test": "vitest run --config vitest.config.ts"
   },
   "dependencies": {
-    "@localci/ci-runner-core": "workspace:*"
+    "@localci/ci-runner-core": "workspace:*",
+    "typescript": "^5.9.3"
   },
   "engines": {
     "node": ">=20.19.0",
