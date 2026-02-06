@@ -9,7 +9,7 @@
   "scripts": {
     "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true }); require('node:fs').rmSync('.tmp', { recursive: true, force: true })\"",
     "build": "vite build --config vite.config.ts && tsc -p tsconfig.build.json",
-    "pretypecheck": "pnpm --filter @localci/ci-runner-core run build",
+    "pretypecheck": "pnpm --filter @localci/ci-runner-core run build && pnpm --filter @localci/ci-runner-cli run build",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "pretest": "pnpm --filter @localci/ci-runner-core run build && pnpm --filter @localci/ci-runner-cli run build",
     "lint": "eslint \"src/**/*.ts\" \"test/**/*.ts\"",
