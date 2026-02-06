@@ -1,0 +1,15 @@
+{
+  "steps": [
+    {
+      "id": "prepare",
+      "name": "Prepare",
+      "command": "node stubs/prepare-step.cjs"
+    },
+    {
+      "id": "optional-docs",
+      "name": "Optional Docs",
+      "command": "node stubs/optional-fail-step.cjs",
+      "optional": true
+    }
+  ]
+}

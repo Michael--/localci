@@ -16,7 +16,9 @@
     "test": "vitest run --config vitest.config.ts",
     "smoke": "node --enable-source-maps dist/index.js",
     "smoke:json": "node --enable-source-maps dist/index.js --json",
-    "smoke:timeout": "node --enable-source-maps dist/index.js --timeout-demo"
+    "smoke:timeout": "node --enable-source-maps dist/index.js --timeout-demo",
+    "smoke:cli:pretty": "node --enable-source-maps ../ci-runner-cli/dist/cli.js --config smoke/cli.pretty.pass.config.json --cwd . --format pretty",
+    "smoke:cli:pretty:optional": "node --enable-source-maps ../ci-runner-cli/dist/cli.js --config smoke/cli.pretty.optional.config.json --cwd . --format pretty"
   },
   "dependencies": {
     "@localci/ci-runner-core": "workspace:*"
