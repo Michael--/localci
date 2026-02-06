@@ -8,6 +8,9 @@ importers:
 
   .:
     devDependencies:
+      '@types/node':
+        specifier: ^25.2.1
+        version: 25.2.1
       '@commitlint/cli':
         specifier: ^20.3.1
         version: 20.4.1(@types/node@25.2.1)(typescript@5.9.3)
@@ -53,6 +56,9 @@ importers:
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
+      vite:
+        specifier: ^7.3.1
+        version: 7.3.1(@types/node@25.2.1)(jiti@2.6.1)(yaml@2.8.2)
       vitest:
         specifier: ^4.0.17
         version: 4.0.18(@types/node@25.2.1)(jiti@2.6.1)(yaml@2.8.2)

@@ -12,11 +12,13 @@
     "test": "pnpm -r --if-present run test",
     "lint": "pnpm -r --if-present run lint",
     "typecheck": "pnpm -r --if-present run typecheck",
+    "check": "pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "spell": "cspell \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "prepare": "husky",
-    "ci": "export PATH=\"$HOME/.cargo/bin:$HOME/go/bin:$PATH\" && node ci.js",
+    "pipeline": "export PATH=\"$HOME/.cargo/bin:$HOME/go/bin:$PATH\" && node blueprints/ci.js",
+    "ci": "pnpm run pipeline",
     "docs:build": "pnpm -C docs-site build"
   },
   "keywords": [
@@ -30,6 +32,7 @@
     "pnpm": ">=10.28.1"
   },
   "devDependencies": {
+    "@types/node": "^25.2.1",
     "@commitlint/cli": "^20.3.1",
     "@commitlint/config-conventional": "^20.3.1",
     "@eslint/js": "^9.39.2",
@@ -45,6 +48,7 @@
     "prettier": "^3.8.0",
     "ts-proto": "^2.11.1",
     "typescript": "^5.9.3",
+    "vite": "^7.3.1",
     "vitest": "^4.0.17"
   }
 }
