@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import type { CommandExecutionResult, CommandExecutor } from '../src/index.js'
-import { createPipelineRunner } from '../src/index.js'
+import type {
+  CommandExecutionResult,
+  CommandExecutor,
+  PipelineReporter,
+  StepOutputParser,
+} from '../src/index.js'
+import { createPipelineRunner, StepParserRegistry } from '../src/index.js'
 
 const successResult = (): CommandExecutionResult => {
   return {
@@ -121,5 +126,146 @@ describe('PipelineRunner', () => {
     expect(result.exitCode).toBe(1)
     expect(result.steps[0]?.status).toBe('timed_out')
     expect(result.steps[0]?.reason).toBe('command_timeout')
+  })
+
+  it('stops after first hard failure when continueOnError is false', async () => {
+    const runner = createPipelineRunner({
+      steps: [
+        {
+          id: 'build',
+          name: 'Build',
+          command: 'pnpm run build',
+        },
+        {
+          id: 'lint',
+          name: 'Lint',
+          command: 'pnpm run lint',
+        },
+      ],
+      executor: createSequenceExecutor([failedResult(false), successResult()]),
+      continueOnError: false,
+      now: (() => {
+        let timestamp = 0
+        return (): number => {
+          timestamp += 1
+          return timestamp
+        }
+      })(),
+    })
+
+    const result = await runner.run()
+
+    expect(result.steps).toHaveLength(1)
+    expect(result.steps[0]?.id).toBe('build')
+    expect(result.exitCode).toBe(1)
+  })
+
+  it('emits reporter lifecycle hooks in execution order', async () => {
+    const events: string[] = []
+
+    const reporter: PipelineReporter = {
+      onPipelineStart: (): void => {
+        events.push('pipeline:start')
+      },
+      onStepStart: (step): void => {
+        events.push(`step:start:${step.id}`)
+      },
+      onStepComplete: (result): void => {
+        events.push(`step:complete:${result.id}:${result.status}`)
+      },
+      onPipelineComplete: (result): void => {
+        events.push(`pipeline:complete:${result.exitCode}`)
+      },
+    }
+
+    const runner = createPipelineRunner({
+      steps: [
+        {
+          id: 'unit-tests',
+          name: 'Unit Tests',
+          command: 'pnpm run test',
+        },
+      ],
+      executor: createSequenceExecutor([successResult()]),
+      reporters: [reporter],
+      now: (() => {
+        let timestamp = 0
+        return (): number => {
+          timestamp += 1
+          return timestamp
+        }
+      })(),
+    })
+
+    await runner.run()
+
+    expect(events).toEqual([
+      'pipeline:start',
+      'step:start:unit-tests',
+      'step:complete:unit-tests:passed',
+      'pipeline:complete:0',
+    ])
+  })
+
+  it('attaches parser metrics from first matching parser', async () => {
+    const parser: StepOutputParser = {
+      id: 'test-counter',
+      matches: (step): boolean => step.id === 'unit-tests',
+      parse: (output) => {
+        const match = output.stdout.match(/Tests\s+(\d+)\s+passed/)
+        if (!match) {
+          return null
+        }
+
+        return {
+          label: 'tests_passed',
+          value: Number(match[1]),
+        }
+      },
+    }
+
+    const fallbackParser: StepOutputParser = {
+      id: 'fallback',
+      matches: (): boolean => true,
+      parse: () => {
+        return {
+          label: 'fallback',
+          value: 'used',
+        }
+      },
+    }
+
+    const registry = new StepParserRegistry([parser, fallbackParser])
+
+    const runner = createPipelineRunner({
+      steps: [
+        {
+          id: 'unit-tests',
+          name: 'Unit Tests',
+          command: 'pnpm run test',
+        },
+      ],
+      parserResolver: registry,
+      executor: createSequenceExecutor([
+        {
+          ...successResult(),
+          stdout: 'Tests 42 passed',
+        },
+      ]),
+      now: (() => {
+        let timestamp = 0
+        return (): number => {
+          timestamp += 1
+          return timestamp
+        }
+      })(),
+    })
+
+    const result = await runner.run()
+
+    expect(result.steps[0]?.metrics).toEqual({
+      label: 'tests_passed',
+      value: 42,
+    })
   })
 })

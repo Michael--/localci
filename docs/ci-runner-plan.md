@@ -42,7 +42,7 @@
 ## Milestone 3: Output and Integrations
 
 - [ ] `pretty` formatter parity with current script behavior.
-- [ ] `json` formatter for machine consumers.
+- [x] `json` formatter for machine consumers.
 - [ ] `junit` formatter (optional).
 - [ ] GitHub Actions summary formatter (optional).
 
@@ -55,7 +55,7 @@
 
 ## Milestone 5: Publish Readiness
 
-- [ ] Add unit tests for runner/executor/parsers.
+- [x] Add unit tests for runner/executor/parsers.
 - [ ] Add integration tests for CLI flows.
 - [ ] Add API documentation and migration notes.
 - [ ] Add versioning/release workflow.
