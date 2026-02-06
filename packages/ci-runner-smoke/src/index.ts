@@ -1,6 +1,3 @@
-import { fileURLToPath } from 'node:url'
-import { resolve } from 'node:path'
-
 import { formatPipelineResultAsJson } from '@localci/ci-runner-core'
 
 import { runSmokePipeline } from './smokePipeline.js'
@@ -15,7 +12,7 @@ const writeError = (line: string): void => {
 
 const runCli = async (): Promise<void> => {
   const argv = new Set(process.argv.slice(2))
-  const packageRoot = resolve(fileURLToPath(new URL('.', import.meta.url)), '..')
+  const packageRoot = process.cwd()
 
   const result = await runSmokePipeline({
     cwd: packageRoot,

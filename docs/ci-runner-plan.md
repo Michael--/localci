@@ -68,5 +68,5 @@
 - [x] Plan refined and saved.
 - [x] Implement `ci-runner-core` scaffold.
 - [x] Add a smoke project consuming `ci-runner-core`.
-- [ ] Run `lint`, `typecheck`, and `test`.
+- [x] Run `lint`, `typecheck`, and `test`.
 - [ ] Prepare next PR scope for CLI package.

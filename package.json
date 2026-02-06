@@ -16,6 +16,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "spell": "cspell \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "smoke": "pnpm --filter @localci/ci-runner-smoke run smoke:json",
     "prepare": "husky",
     "pipeline": "export PATH=\"$HOME/.cargo/bin:$HOME/go/bin:$PATH\" && node blueprints/ci.js",
     "ci": "pnpm run pipeline",
