@@ -13,7 +13,7 @@
   - [x] Domain contracts (`step`, `result`, `status`, `summary`)
   - [x] Execution layer (`command executor`, `timeout`, `retry`)
   - [x] Runner engine (`sequential orchestration`, `continue-on-fail`)
-  - [x] Output adapters (`json`, `pretty` pending)
+  - [x] Output adapters (`json`, `pretty`)
   - [x] Parser API (`tool-specific test metrics`)
 - [x] Define stable public API surface (`index.ts` exports only).
 
@@ -35,12 +35,12 @@
 
 ## Milestone 2: CLI Package (`@scope/ci-runner-cli`)
 
-- [ ] Add config loading (`ci.config.ts` / `ci.config.json`).
-- [ ] Map config to core runner model.
-- [ ] Support conditional steps via config/env (e.g. integration tests toggle).
-- [ ] Support per-step optional policy from config (`warn but continue`).
-- [ ] Add flags (`--format`, `--verbose`, `--watch`, `--fail-fast`).
-- [ ] Keep compact output on success; emit full details on failure.
+- [x] Add config loading (`ci.config.ts` / `ci.config.json`).
+- [x] Map config to core runner model.
+- [x] Support conditional steps via config/env (e.g. integration tests toggle).
+- [x] Support per-step optional policy from config (`warn but continue`).
+- [x] Add flags (`--format`, `--verbose`, `--watch`, `--fail-fast`).
+- [x] Keep compact output on success; emit full details on failure.
 
 ## Milestone 3: Output and Integrations
 
@@ -72,4 +72,4 @@
 - [x] Implement `ci-runner-core` scaffold.
 - [x] Add a smoke project consuming `ci-runner-core`.
 - [x] Run `lint`, `typecheck`, and `test`.
-- [ ] Prepare next PR scope for CLI package.
+- [x] Implement `ci-runner-cli` package (config, flags, mapping, reporter, watch mode).
