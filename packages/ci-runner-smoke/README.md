@@ -14,6 +14,7 @@ It validates realistic behavior with stubbed commands:
 
 - `pnpm --filter @localci/ci-runner-smoke build`
 - `pnpm --filter @localci/ci-runner-smoke test`
+- `pnpm --filter @localci/ci-runner-smoke test:integration`
 - `pnpm --filter @localci/ci-runner-smoke smoke`
 - `pnpm --filter @localci/ci-runner-smoke smoke:json`
 - `pnpm --filter @localci/ci-runner-smoke smoke:timeout`

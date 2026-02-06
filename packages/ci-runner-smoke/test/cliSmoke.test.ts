@@ -142,6 +142,71 @@ describe('ci-runner-cli smoke', () => {
       value: 3,
     })
   })
+
+  it('stops after first hard failure in fail-fast mode', async () => {
+    const configFilePath = await writeSmokeConfig([
+      {
+        id: 'hard-fail',
+        name: 'Hard Fail',
+        command: `node ${JSON.stringify(resolve(stubsRoot, 'optional-fail-step.cjs'))}`,
+      },
+      {
+        id: 'after-failure',
+        name: 'After Failure',
+        command: `node ${JSON.stringify(resolve(stubsRoot, 'prepare-step.cjs'))}`,
+      },
+    ])
+
+    const result = await runCli([
+      '--config',
+      configFilePath,
+      '--cwd',
+      smokeRoot,
+      '--format',
+      'json',
+      '--fail-fast',
+    ])
+    const parsed = JSON.parse(result.stdout) as {
+      readonly summary: {
+        readonly total: number
+      }
+      readonly steps: ReadonlyArray<{
+        readonly id: string
+      }>
+      readonly exitCode: number
+    }
+
+    expect(result.exitCode).toBe(1)
+    expect(parsed.exitCode).toBe(1)
+    expect(parsed.summary.total).toBe(1)
+    expect(parsed.steps).toHaveLength(1)
+    expect(parsed.steps[0]?.id).toBe('hard-fail')
+  })
+
+  it('shows successful step output in pretty mode when verbose is enabled', async () => {
+    const configFilePath = await writeSmokeConfig([
+      {
+        id: 'prepare',
+        name: 'Prepare',
+        command: `node ${JSON.stringify(resolve(stubsRoot, 'prepare-step.cjs'))}`,
+      },
+    ])
+
+    const result = await runCli([
+      '--config',
+      configFilePath,
+      '--cwd',
+      smokeRoot,
+      '--format',
+      'pretty',
+      '--verbose',
+    ])
+    const stdout = normalizePrettyOutput(result.stdout)
+
+    expect(result.exitCode).toBe(0)
+    expect(stdout).toContain('stdout:')
+    expect(stdout).toContain('prepare step passed')
+  })
 })
 
 const writeSmokeConfig = async (steps: readonly SmokeConfigStep[]): Promise<string> => {

@@ -14,6 +14,8 @@
     "pretest": "pnpm --filter @localci/ci-runner-core run build && pnpm --filter @localci/ci-runner-cli run build",
     "lint": "eslint \"src/**/*.ts\" \"test/**/*.ts\"",
     "test": "vitest run --config vitest.config.ts",
+    "pretest:integration": "pnpm --filter @localci/ci-runner-core run build && pnpm --filter @localci/ci-runner-cli run build",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
     "smoke": "node --enable-source-maps dist/index.js",
     "smoke:json": "node --enable-source-maps dist/index.js --json",
     "smoke:timeout": "node --enable-source-maps dist/index.js --timeout-demo",
