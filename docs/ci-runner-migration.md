@@ -51,6 +51,21 @@ After:
 }
 ```
 
+Typed TS config (recommended for editor type safety):
+
+```ts
+import type { CiRunnerConfig } from '@localci/ci-runner-cli/types'
+
+const config = {
+  steps: [
+    { id: 'lint', name: 'Lint', command: 'pnpm run lint' },
+    { id: 'test', name: 'Test', command: 'pnpm run test', optional: true },
+  ],
+} satisfies CiRunnerConfig
+
+export default config
+```
+
 ## Validation Checklist
 
 - `pnpm run check`

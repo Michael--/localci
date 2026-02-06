@@ -90,6 +90,32 @@ Reason values:
 }
 ```
 
+Typed TypeScript variant:
+
+```ts
+import type { CiRunnerConfig } from '@localci/ci-runner-cli/types'
+
+const config = {
+  output: {
+    format: 'pretty',
+    verbose: false,
+  },
+  steps: [
+    {
+      id: 'test',
+      name: 'Unit Tests',
+      command: 'pnpm run test',
+      retry: {
+        maxAttempts: 2,
+        delayMs: 250,
+      },
+    },
+  ],
+} satisfies CiRunnerConfig
+
+export default config
+```
+
 ## Output Contracts
 
 - `pretty`: compact success output, detailed failure output.

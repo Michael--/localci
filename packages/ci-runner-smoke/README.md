@@ -20,3 +20,4 @@ It validates realistic behavior with stubbed commands:
 - `pnpm --filter @localci/ci-runner-smoke smoke:timeout`
 - `pnpm --filter @localci/ci-runner-smoke smoke:cli:pretty`
 - `pnpm --filter @localci/ci-runner-smoke smoke:cli:pretty:optional`
+- `pnpm --filter @localci/ci-runner-smoke smoke:cli:pretty:typed`

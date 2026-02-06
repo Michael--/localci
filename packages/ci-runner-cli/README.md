@@ -56,6 +56,36 @@ Example:
 }
 ```
 
+Typed TypeScript example:
+
+```ts
+import type { CiRunnerConfig } from '@localci/ci-runner-cli/types'
+
+const config = {
+  output: {
+    format: 'pretty',
+  },
+  steps: [
+    {
+      id: 'lint',
+      name: 'Lint',
+      command: 'pnpm run lint',
+    },
+    {
+      id: 'test',
+      name: 'Unit Tests',
+      command: 'pnpm run test',
+      retry: {
+        maxAttempts: 2,
+        delayMs: 250,
+      },
+    },
+  ],
+} satisfies CiRunnerConfig
+
+export default config
+```
+
 ## Output Modes
 
 - `pretty`: compact success output, detailed error output
