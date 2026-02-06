@@ -2,5 +2,6 @@ node_modules/
 dist/
 coverage/
 .tmp/
+.artifacts/
 *.tsbuildinfo
 AGENTS.md

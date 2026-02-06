@@ -1,7 +1,7 @@
 {
   "name": "@localci/ci-runner-cli",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
   "type": "module",
   "description": "CLI runner package for ci-runner.",
   "bin": {
