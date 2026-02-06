@@ -1,0 +1,27 @@
+{
+  "name": "@localci/ci-runner-smoke",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Smoke project consuming ci-runner-core with stubbed steps.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true }); require('node:fs').rmSync('.tmp', { recursive: true, force: true })\"",
+    "build": "vite build --config vite.config.ts && tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint \"src/**/*.ts\" \"test/**/*.ts\"",
+    "test": "vitest run --config vitest.config.ts",
+    "smoke": "node --enable-source-maps dist/index.js",
+    "smoke:json": "node --enable-source-maps dist/index.js --json",
+    "smoke:timeout": "node --enable-source-maps dist/index.js --timeout-demo"
+  },
+  "dependencies": {
+    "@localci/ci-runner-core": "workspace:*"
+  },
+  "engines": {
+    "node": ">=20.19.0",
+    "pnpm": ">=10.28.1"
+  },
+  "license": "MIT"
+}

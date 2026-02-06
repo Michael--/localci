@@ -20,6 +20,7 @@
 ## Milestone 1: Core Package (`@scope/ci-runner-core`)
 
 - [x] Create package scaffold in `packages/ci-runner-core`.
+- [x] Add workspace smoke consumer (`packages/ci-runner-smoke`) with stub-based pipeline.
 - [ ] Implement strict step result model:
   - [x] `passed`
   - [x] `failed`
@@ -66,5 +67,6 @@
 
 - [x] Plan refined and saved.
 - [x] Implement `ci-runner-core` scaffold.
+- [x] Add a smoke project consuming `ci-runner-core`.
 - [ ] Run `lint`, `typecheck`, and `test`.
 - [ ] Prepare next PR scope for CLI package.

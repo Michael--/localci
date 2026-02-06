@@ -65,6 +65,12 @@ importers:
 
   packages/ci-runner-core: {}
 
+  packages/ci-runner-smoke:
+    dependencies:
+      '@localci/ci-runner-core':
+        specifier: workspace:*
+        version: link:../ci-runner-core
+
 packages:
 
   '@babel/code-frame@7.29.0':
