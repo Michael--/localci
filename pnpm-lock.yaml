@@ -79,6 +79,10 @@ importers:
       '@localci/ci-runner-core':
         specifier: workspace:*
         version: link:../ci-runner-core
+    devDependencies:
+      '@localci/ci-runner-cli':
+        specifier: workspace:*
+        version: link:../ci-runner-cli
 
 packages:
 

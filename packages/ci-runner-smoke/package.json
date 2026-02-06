@@ -29,6 +29,9 @@
   "dependencies": {
     "@localci/ci-runner-core": "workspace:*"
   },
+  "devDependencies": {
+    "@localci/ci-runner-cli": "workspace:*"
+  },
   "engines": {
     "node": ">=20.19.0",
     "pnpm": ">=10.28.1"
