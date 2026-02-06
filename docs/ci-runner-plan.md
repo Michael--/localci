@@ -60,11 +60,12 @@
 ## Milestone 5: Publish Readiness
 
 - [x] Add unit tests for runner/executor/parsers.
-- [ ] Add integration tests for CLI flows.
-- [ ] Add API documentation and migration notes.
-- [ ] Add versioning/release workflow.
-- [ ] Dry-run package publish (`pnpm -r pack`).
+- [x] Add integration tests for CLI flows.
+- [x] Add API documentation and migration notes.
+- [x] Add versioning/release workflow.
+- [x] Dry-run package publish (`pnpm -r pack`).
 - [ ] Publish initial versions.
+  - Deferred until manual validation against real projects is complete.
 
 ## Current Execution Order
 
