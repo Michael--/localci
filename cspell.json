@@ -11,6 +11,7 @@
   "flagWords": [],
   "ignorePaths": [
     "node_modules",
+    "docs",
     "dist",
     "out",
     "build",
