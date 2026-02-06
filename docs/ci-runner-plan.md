@@ -1,76 +1,80 @@
-# CI Runner Plan
+# CI Runner Plan (Consolidated)
 
-## Scope and Product Direction
+## Current Status
 
-- [ ] Finalize umbrella naming (`brand`) and package naming (`@scope/ci-runner-*`).
-- [ ] Define v1 product boundaries (CLI-first, no daemon/web hard dependency).
-- [ ] Define compatibility target (Node LTS range, OS support matrix).
+- [x] Milestone 1: Core package implemented and validated.
+- [x] Milestone 2: CLI package implemented and validated.
+- [x] Milestone 3: Pretty/JSON output and parser presets implemented.
+- [x] Milestone 5 (mostly): Integration tests, docs, and release dry-run workflow implemented.
+- [ ] Initial npm publish is intentionally pending.
 
-## Architecture Baseline
+## Reassessed Open Items (Priority)
 
-- [x] Extract blueprint behavior as MVP baseline.
-- [ ] Split architecture into modules:
-  - [x] Domain contracts (`step`, `result`, `status`, `summary`)
-  - [x] Execution layer (`command executor`, `timeout`, `retry`)
-  - [x] Runner engine (`sequential orchestration`, `continue-on-fail`)
-  - [x] Output adapters (`json`, `pretty`)
-  - [x] Parser API (`tool-specific test metrics`)
-- [x] Define stable public API surface (`index.ts` exports only).
+### P0: Required before first npm publish
 
-## Milestone 1: Core Package (`@scope/ci-runner-core`)
+- [ ] Finalize package naming and scope strategy.
+  - Decision needed: keep `@localci/*` or move to final public scope.
+- [ ] Define and document compatibility target.
+  - Minimum: Node LTS range and supported OS matrix.
+- [ ] Execute manual validation on real projects.
+  - Run in at least 2 external repositories with real CI pipelines.
+  - Record findings and required fixes.
+- [ ] Publish first versions of `@localci/ci-runner-core` and `@localci/ci-runner-cli`.
+  - Gate: successful `pnpm run release:dry-run` and manual validation sign-off.
 
-- [x] Create package scaffold in `packages/ci-runner-core`.
-- [x] Add workspace smoke consumer (`packages/ci-runner-smoke`) with stub-based pipeline.
-- [ ] Implement strict step result model:
-  - [x] `passed`
-  - [x] `failed`
-  - [x] `skipped` (with reason)
-  - [x] `timed_out`
-  - [x] `retried` metadata (attempt count)
-- [x] Implement timeout per step.
-- [x] Implement retry policy per step.
-- [x] Keep non-blocking optional step behavior (`warn but continue`).
-- [x] Return deterministic exit decision from summary.
-- [x] Provide typed parser interface and registry.
+### P1: High-value, can be post-publish
 
-## Milestone 2: CLI Package (`@scope/ci-runner-cli`)
+- [ ] Define explicit v1 product boundaries (CLI-first scope statement).
+- [ ] Add optional `junit` formatter.
+- [ ] Add optional GitHub Actions summary formatter.
 
-- [x] Add config loading (`ci.config.ts` / `ci.config.json`).
-- [x] Map config to core runner model.
-- [x] Support conditional steps via config/env (e.g. integration tests toggle).
-- [x] Support per-step optional policy from config (`warn but continue`).
-- [x] Add flags (`--format`, `--verbose`, `--watch`, `--fail-fast`).
-- [x] Keep compact output on success; emit full details on failure.
+### P2: Product extensions (post-v1)
 
-## Milestone 3: Output and Integrations
-
-- [x] `pretty` formatter parity with current script behavior.
-- [x] `json` formatter for machine consumers.
-- [x] Ship default parser presets for vitest/playwright summaries.
-- [ ] `junit` formatter (optional).
-- [ ] GitHub Actions summary formatter (optional).
-
-## Milestone 4: Runtime Extensions
-
-- [ ] Add watch mode.
+- [x] Add watch mode (basic implementation is present in CLI runner).
 - [ ] Add daemon/background mode.
 - [ ] Store run history (SQLite).
 - [ ] Add minimal web UI for build history and step drilldown.
 
-## Milestone 5: Publish Readiness
+## Completed Scope (Consolidated)
 
-- [x] Add unit tests for runner/executor/parsers.
-- [x] Add integration tests for CLI flows.
-- [x] Add API documentation and migration notes.
-- [x] Add versioning/release workflow.
-- [x] Dry-run package publish (`pnpm -r pack`).
+### Architecture Baseline
+
+- [x] Extracted blueprint behavior into modular TypeScript packages.
+- [x] Domain contracts (`step`, `result`, `status`, `summary`).
+- [x] Execution layer (`command executor`, `timeout`, `retry`).
+- [x] Runner orchestration (`continue-on-fail`, deterministic exit code).
+- [x] Output adapters (`pretty`, `json`).
+- [x] Parser API + registry.
+- [x] Stable public API exports.
+
+### Core Package (`@localci/ci-runner-core`)
+
+- [x] Strict step result model (`passed`, `failed`, `skipped`, `timed_out`, retry metadata).
+- [x] Per-step timeout and retry policy.
+- [x] Optional-step non-blocking behavior.
+- [x] Unit tests for runner and parser behavior.
+
+### CLI Package (`@localci/ci-runner-cli`)
+
+- [x] Config loading (`ci.config.ts` and `ci.config.json`).
+- [x] Config-to-core mapping.
+- [x] Conditional step execution from env conditions.
+- [x] CLI flags: `--format`, `--verbose`, `--watch`, `--fail-fast`, `--config`, `--cwd`.
+- [x] Compact success output and detailed failure output.
+- [x] Default parser presets for vitest and playwright summaries.
+
+### Publish Readiness
+
+- [x] Integration test flows for CLI (smoke package).
+- [x] Package READMEs for publishable modules.
+- [x] API, migration, and release documentation.
+- [x] Release dry-run scripts and GitHub workflow.
+- [x] Dry-run pack artifacts for publishable packages.
+
+## Next Execution Order
+
+- [ ] Confirm final package scope and naming.
+- [ ] Run manual validation in real repositories.
+- [ ] Apply fixes from manual validation.
 - [ ] Publish initial versions.
-  - Deferred until manual validation against real projects is complete.
-
-## Current Execution Order
-
-- [x] Plan refined and saved.
-- [x] Implement `ci-runner-core` scaffold.
-- [x] Add a smoke project consuming `ci-runner-core`.
-- [x] Run `lint`, `typecheck`, and `test`.
-- [x] Implement `ci-runner-cli` package (config, flags, mapping, reporter, watch mode).
+- [ ] Re-evaluate P1 formatter backlog based on first adopter feedback.
