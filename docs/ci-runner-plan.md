@@ -44,9 +44,9 @@
 
 ## Milestone 3: Output and Integrations
 
-- [ ] `pretty` formatter parity with current script behavior.
+- [x] `pretty` formatter parity with current script behavior.
 - [x] `json` formatter for machine consumers.
-- [ ] Ship default parser presets for vitest/playwright summaries.
+- [x] Ship default parser presets for vitest/playwright summaries.
 - [ ] `junit` formatter (optional).
 - [ ] GitHub Actions summary formatter (optional).
 
