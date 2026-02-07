@@ -10,6 +10,10 @@ interface SmokeConfigStep {
   readonly name: string
   readonly command: string
   readonly optional?: boolean
+  readonly enabled?: boolean
+  readonly when?: {
+    readonly env?: Readonly<Record<string, string>>
+  }
 }
 
 interface CliRunResult {
@@ -251,6 +255,50 @@ describe('ci-runner-cli smoke', () => {
     expect(stdout).toContain('⚠ E2E Tests skipped (optional_step_failed, <duration>)')
     expect(stdout).toContain('note: missing script "test:e2e"')
     expect(stdout).not.toContain('stdout:')
+  })
+
+  it('prints config skip hints for disabled and env-gated steps', async () => {
+    const configFilePath = await writeSmokeConfig([
+      {
+        id: 'integration-tests',
+        name: 'Integration Tests',
+        command: 'pnpm run test:integration',
+        when: {
+          env: {
+            RUN_INTEGRATION_TESTS: 'true',
+          },
+        },
+      },
+      {
+        id: 'clean',
+        name: 'Clean',
+        command: 'pnpm run clean',
+        enabled: false,
+      },
+      {
+        id: 'prepare',
+        name: 'Prepare',
+        command: `node ${JSON.stringify(resolve(stubsRoot, 'prepare-step.cjs'))}`,
+      },
+    ])
+
+    const result = await runCli([
+      '--config',
+      configFilePath,
+      '--cwd',
+      smokeRoot,
+      '--format',
+      'pretty',
+    ])
+    const stdout = normalizePrettyOutput(result.stdout)
+
+    expect(result.exitCode).toBe(0)
+    expect(stdout).toContain(
+      'i Skipping Integration Tests (set RUN_INTEGRATION_TESTS=true to enable)'
+    )
+    expect(stdout).toContain('i Skipping Clean (enabled=false)')
+    expect(stdout).toContain('ci-runner: executing 1 steps')
+    expect(stdout).toContain('Summary: total=1 passed=1 skipped=0 failed=0 timedOut=0')
   })
 })
 

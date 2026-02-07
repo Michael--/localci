@@ -9,7 +9,7 @@ import {
   type PipelineRunResult,
 } from './internal/core/index.js'
 
-import { mapConfigToRun } from './config/mapConfigToRun.js'
+import { mapConfigToRun, type ExcludedPipelineStep } from './config/mapConfigToRun.js'
 import { loadCiRunnerConfig } from './config/loadConfig.js'
 import type { CliOutputFormat } from './config/types.js'
 import { createDefaultStepParsers } from './parsers/defaultStepParsers.js'
@@ -46,6 +46,7 @@ export const runCliPipeline = async (options: RunCliPipelineOptions): Promise<nu
 
   const execute = async (): Promise<PipelineRunResult> => {
     const mappedRun = mapConfigToRun(loadedConfig.config, options.cwd, options.failFast)
+    printExcludedStepHints(mappedRun.excludedSteps, effectiveFormat)
     const parserRegistry = new StepParserRegistry(createDefaultStepParsers())
 
     const runner = createPipelineRunner({
@@ -68,6 +69,38 @@ export const runCliPipeline = async (options: RunCliPipelineOptions): Promise<nu
   }
 
   return await runWatchLoop(options.cwd, loadedConfig.configFilePath, effectiveFormat, execute)
+}
+
+const printExcludedStepHints = (
+  excludedSteps: readonly ExcludedPipelineStep[],
+  format: CliOutputFormat
+): void => {
+  if (format !== 'pretty' || excludedSteps.length === 0) {
+    return
+  }
+
+  for (const step of excludedSteps) {
+    if (step.reason === 'disabled') {
+      process.stdout.write(`i Skipping ${step.name} (enabled=false)\n`)
+      continue
+    }
+
+    if (step.reason === 'env_mismatch' && step.requiredEnv) {
+      process.stdout.write(
+        `i Skipping ${step.name} (set ${formatRequiredEnv(step.requiredEnv)} to enable)\n`
+      )
+      continue
+    }
+
+    process.stdout.write(`i Skipping ${step.name}\n`)
+  }
+}
+
+const formatRequiredEnv = (requiredEnv: Readonly<Record<string, string>>): string => {
+  return Object.entries(requiredEnv)
+    .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))
+    .map(([key, value]) => `${key}=${value}`)
+    .join(' ')
 }
 
 const runWatchLoop = async (

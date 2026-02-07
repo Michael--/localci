@@ -1,6 +1,6 @@
 {
   "name": "@number10/ci-runner-cli",
-  "version": "0.1.41",
+  "version": "0.1.0",
   "private": false,
   "type": "module",
   "description": "CLI runner package for ci-runner.",

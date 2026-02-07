@@ -30,12 +30,33 @@ export interface MappedPipelineStep {
 export interface MappedPipelineRunOptions {
   /** Ordered runtime steps. */
   readonly steps: readonly MappedPipelineStep[]
+  /** Steps excluded from execution with reason metadata. */
+  readonly excludedSteps: readonly ExcludedPipelineStep[]
   /** Base working directory for step execution. */
   readonly cwd: string
   /** Base environment for step execution. */
   readonly env: NodeJS.ProcessEnv
   /** Continue after hard failures when true. */
   readonly continueOnError: boolean
+}
+
+/**
+ * Exclusion metadata for one configured step.
+ */
+export interface ExcludedPipelineStep {
+  /** Stable step id. */
+  readonly id: string
+  /** Display name shown in output. */
+  readonly name: string
+  /** Machine-readable exclusion reason. */
+  readonly reason: 'disabled' | 'env_mismatch'
+  /** Required environment values when excluded by env mismatch. */
+  readonly requiredEnv?: Readonly<Record<string, string>>
+}
+
+interface StepExclusion {
+  readonly reason: ExcludedPipelineStep['reason']
+  readonly requiredEnv?: Readonly<Record<string, string>>
 }
 
 /**
@@ -54,14 +75,29 @@ export const mapConfigToRun = (
   const runCwd = config.cwd ? resolve(cwd, config.cwd) : cwd
   const env = { ...process.env, ...config.env }
 
-  const steps = config.steps
-    .filter((step) => shouldIncludeStep(step, env))
-    .map((step) => mapStep(step, runCwd))
+  const steps: MappedPipelineStep[] = []
+  const excludedSteps: ExcludedPipelineStep[] = []
+
+  for (const step of config.steps) {
+    const exclusion = getExclusion(step, env)
+    if (exclusion) {
+      excludedSteps.push({
+        id: step.id,
+        name: step.name,
+        reason: exclusion.reason,
+        requiredEnv: exclusion.requiredEnv,
+      })
+      continue
+    }
+
+    steps.push(mapStep(step, runCwd))
+  }
 
   const continueOnError = failFast ? false : (config.continueOnError ?? true)
 
   return {
     steps,
+    excludedSteps,
     cwd: runCwd,
     env,
     continueOnError,
@@ -81,21 +117,30 @@ const mapStep = (step: CliConfigStep, runCwd: string): MappedPipelineStep => {
   }
 }
 
-const shouldIncludeStep = (step: CliConfigStep, env: NodeJS.ProcessEnv): boolean => {
+const getExclusion = (step: CliConfigStep, env: NodeJS.ProcessEnv): StepExclusion | null => {
   if (step.enabled === false) {
-    return false
+    return { reason: 'disabled' }
   }
 
   const envConditions = step.when?.env
   if (!envConditions) {
-    return true
+    return null
   }
+
+  const missingConditions: Record<string, string> = {}
 
   for (const [key, expectedValue] of Object.entries(envConditions)) {
     if (env[key] !== expectedValue) {
-      return false
+      missingConditions[key] = expectedValue
     }
   }
 
-  return true
+  if (Object.keys(missingConditions).length > 0) {
+    return {
+      reason: 'env_mismatch',
+      requiredEnv: missingConditions,
+    }
+  }
+
+  return null
 }

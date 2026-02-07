@@ -37,6 +37,22 @@ describe('mapConfigToRun', () => {
 
     expect(runConfig.cwd).toBe('/repo/workspace')
     expect(runConfig.steps.map((step) => step.id)).toEqual(['always'])
+    expect(runConfig.excludedSteps).toEqual([
+      {
+        id: 'integration',
+        name: 'Integration',
+        reason: 'env_mismatch',
+        requiredEnv: {
+          RUN_INTEGRATION_TESTS: 'true',
+        },
+      },
+      {
+        id: 'disabled',
+        name: 'Disabled',
+        reason: 'disabled',
+        requiredEnv: undefined,
+      },
+    ])
   })
 
   it('keeps step enabled by default when enabled is omitted', () => {
@@ -53,6 +69,7 @@ describe('mapConfigToRun', () => {
     const runConfig = mapConfigToRun(config, '/repo', false)
 
     expect(runConfig.steps.map((step) => step.id)).toEqual(['default-enabled'])
+    expect(runConfig.excludedSteps).toHaveLength(0)
   })
 
   it('forces fail fast when requested', () => {
