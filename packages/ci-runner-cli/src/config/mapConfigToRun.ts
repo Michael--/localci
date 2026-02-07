@@ -82,6 +82,10 @@ const mapStep = (step: CliConfigStep, runCwd: string): MappedPipelineStep => {
 }
 
 const shouldIncludeStep = (step: CliConfigStep, env: NodeJS.ProcessEnv): boolean => {
+  if (step.enabled === false) {
+    return false
+  }
+
   const envConditions = step.when?.env
   if (!envConditions) {
     return true

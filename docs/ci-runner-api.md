@@ -30,6 +30,7 @@
       "id": "test",
       "name": "Unit Tests",
       "command": "pnpm run test",
+      "enabled": true,
       "timeoutMs": 60000,
       "optional": false,
       "retry": {
@@ -46,6 +47,11 @@
   ]
 }
 ```
+
+Step controls:
+
+- `enabled` (default `true`): include or exclude a step without deleting it from config.
+- `optional` (default `false`): failed step becomes `skipped` and does not fail the run.
 
 Typed TypeScript variant:
 

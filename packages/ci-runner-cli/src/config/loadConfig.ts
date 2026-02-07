@@ -158,6 +158,7 @@ const parseConfigStep = (value: unknown, index: number): CliConfigStep => {
   const id = parseRequiredString(value.id, `steps[${index}].id`)
   const name = parseRequiredString(value.name, `steps[${index}].name`)
   const command = parseRequiredString(value.command, `steps[${index}].command`)
+  const enabled = parseOptionalBoolean(value.enabled, `steps[${index}].enabled`)
   const cwd = parseOptionalString(value.cwd, `steps[${index}].cwd`)
   const env = parseOptionalStringRecord(value.env, `steps[${index}].env`)
   const optional = parseOptionalBoolean(value.optional, `steps[${index}].optional`)
@@ -169,6 +170,7 @@ const parseConfigStep = (value: unknown, index: number): CliConfigStep => {
     id,
     name,
     command,
+    enabled,
     cwd,
     env,
     optional,

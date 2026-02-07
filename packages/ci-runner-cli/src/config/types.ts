@@ -35,6 +35,8 @@ export interface CliConfigStep {
   readonly name: string
   /** Shell command to execute. */
   readonly command: string
+  /** Enables execution for this step when true. */
+  readonly enabled?: boolean
   /** Relative or absolute working directory for this step. */
   readonly cwd?: string
   /** Environment additions for this step. */

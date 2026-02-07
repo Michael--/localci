@@ -15,7 +15,7 @@ Most CI scripts start simple and become fragile over time:
 
 `ci-runner` gives you one consistent contract:
 
-- explicit step model (`id`, `name`, `command`, `timeout`, `retry`, `optional`)
+- explicit step model (`id`, `name`, `command`, `enabled`, `timeout`, `retry`, `optional`)
 - deterministic exit behavior (`0` pass, `1` hard failure)
 - compact human output (`pretty`) or machine output (`json`)
 - typed config support for editor feedback (`ci.config.ts`)
@@ -87,7 +87,8 @@ Example:
     {
       "id": "lint",
       "name": "Lint",
-      "command": "pnpm run lint"
+      "command": "pnpm run lint",
+      "enabled": true
     },
     {
       "id": "test",
@@ -149,6 +150,11 @@ export default config
 - `--fail-fast` Stop after first hard failure.
 - `--cwd <path>` Base working directory.
 - `-h, --help` Show usage help.
+
+## Step Controls
+
+- `enabled` (default `true`): temporarily disable a step without removing it.
+- `optional` (default `false`): failed step is marked as skipped and does not fail the run.
 
 ## Output Modes
 

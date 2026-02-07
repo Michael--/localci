@@ -24,6 +24,12 @@ describe('mapConfigToRun', () => {
             },
           },
         },
+        {
+          id: 'disabled',
+          name: 'Disabled',
+          command: 'pnpm run disabled',
+          enabled: false,
+        },
       ],
     }
 
@@ -31,6 +37,22 @@ describe('mapConfigToRun', () => {
 
     expect(runConfig.cwd).toBe('/repo/workspace')
     expect(runConfig.steps.map((step) => step.id)).toEqual(['always'])
+  })
+
+  it('keeps step enabled by default when enabled is omitted', () => {
+    const config: CiRunnerConfig = {
+      steps: [
+        {
+          id: 'default-enabled',
+          name: 'Default Enabled',
+          command: 'pnpm run build',
+        },
+      ],
+    }
+
+    const runConfig = mapConfigToRun(config, '/repo', false)
+
+    expect(runConfig.steps.map((step) => step.id)).toEqual(['default-enabled'])
   })
 
   it('forces fail fast when requested', () => {

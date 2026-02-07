@@ -27,6 +27,7 @@ describe('loadCiRunnerConfig', () => {
             id: 'build',
             name: 'Build',
             command: 'pnpm run build',
+            enabled: false,
           },
         ],
       }),
@@ -37,6 +38,7 @@ describe('loadCiRunnerConfig', () => {
 
     expect(loaded.config.steps).toHaveLength(1)
     expect(loaded.config.steps[0]?.id).toBe('build')
+    expect(loaded.config.steps[0]?.enabled).toBe(false)
   })
 
   it('loads ci.config.ts default export', async () => {
