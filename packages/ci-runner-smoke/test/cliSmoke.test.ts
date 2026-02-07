@@ -9,6 +9,7 @@ interface SmokeConfigStep {
   readonly id: string
   readonly name: string
   readonly command: string
+  readonly optional?: boolean
 }
 
 interface CliRunResult {
@@ -224,6 +225,32 @@ describe('ci-runner-cli smoke', () => {
     expect(result.exitCode).toBe(0)
     expect(stdout).toContain('Result: PASS')
     expect(stdout).toContain('Summary: total=2 passed=2 skipped=0 failed=0 timedOut=0')
+  })
+
+  it('prints compact hint for optional skipped missing script', async () => {
+    const configFilePath = await writeSmokeConfig([
+      {
+        id: 'e2e-tests',
+        name: 'E2E Tests',
+        command: 'pnpm run test:e2e',
+        optional: true,
+      },
+    ])
+
+    const result = await runCli([
+      '--config',
+      configFilePath,
+      '--cwd',
+      smokeRoot,
+      '--format',
+      'pretty',
+    ])
+    const stdout = normalizePrettyOutput(result.stdout)
+
+    expect(result.exitCode).toBe(0)
+    expect(stdout).toContain('⚠ E2E Tests skipped (optional_step_failed, <duration>)')
+    expect(stdout).toContain('note: missing script "test:e2e"')
+    expect(stdout).not.toContain('stdout:')
   })
 })
 

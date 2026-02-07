@@ -102,6 +102,28 @@ describe('createDefaultStepParsers', () => {
     })
   })
 
+  it('extracts aggregated lint warnings from eslint summary output', () => {
+    const registry = new StepParserRegistry(createDefaultStepParsers())
+    const step: PipelineStep = {
+      id: 'lint',
+      name: 'Lint',
+      command: 'pnpm -r --if-present run lint',
+    }
+
+    const output = createOutput(
+      [
+        'apps/foo lint: ✖ 4 problems (0 errors, 4 warnings)',
+        'apps/bar lint: ✖ 2 problems (0 errors, 2 warnings)',
+      ].join('\n')
+    )
+    const parsed = registry.parse(step, output)
+
+    expect(parsed).toEqual({
+      label: 'warnings',
+      value: 6,
+    })
+  })
+
   it('extracts workspace task count from turbo output', () => {
     const registry = new StepParserRegistry(createDefaultStepParsers())
     const step: PipelineStep = {

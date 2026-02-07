@@ -72,6 +72,15 @@ export class PrettyReporter implements PipelineReporter {
           'yellow'
         )
       )
+      const missingScript = extractMissingScript(result)
+      if (missingScript) {
+        process.stdout.write(colorize(`  note: missing script "${missingScript}"\n`, 'yellow'))
+        if (this.options.verbose) {
+          this.printOutput(result)
+        }
+        return
+      }
+
       this.printOutput(result)
       return
     }
@@ -139,4 +148,14 @@ const colorize = (text: string, color: 'red' | 'green' | 'yellow' | 'blue'): str
   }
 
   return `${colors[color]}${text}\x1b[0m`
+}
+
+const extractMissingScript = (result: StepResult): string | null => {
+  const combinedOutput = `${result.output.stdout}\n${result.output.stderr}`
+  const match = combinedOutput.match(/Missing script:\s*"?([a-z0-9:_-]+)"?/i)
+  if (!match || !match[1]) {
+    return null
+  }
+
+  return match[1]
 }

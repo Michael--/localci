@@ -6,7 +6,7 @@ import type {
 import type { PipelineStep, StepExecutionOutput } from '../contracts/step.js'
 
 /**
- * In-memory parser registry with first-match resolution.
+ * In-memory parser registry with ordered fallback resolution.
  */
 export class StepParserRegistry implements StepParserResolver {
   private readonly parsers: StepOutputParser[]
@@ -30,14 +30,24 @@ export class StepParserRegistry implements StepParserResolver {
   }
 
   /**
-   * Parses output using the first matching parser.
+   * Parses output using the first matching parser that returns a metric.
    *
    * @param step Step definition.
    * @param output Step output payload.
    * @returns Parsed metric or null.
    */
   public parse(step: PipelineStep, output: StepExecutionOutput): ParsedStepMetrics | null {
-    const parser = this.parsers.find((candidate) => candidate.matches(step))
-    return parser ? parser.parse(output) : null
+    for (const parser of this.parsers) {
+      if (!parser.matches(step)) {
+        continue
+      }
+
+      const parsed = parser.parse(output)
+      if (parsed) {
+        return parsed
+      }
+    }
+
+    return null
   }
 }

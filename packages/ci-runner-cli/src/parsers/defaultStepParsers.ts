@@ -62,6 +62,24 @@ export const createDefaultStepParsers = (): readonly StepOutputParser[] => {
       },
     },
     {
+      id: 'lint-warning-summary-parser',
+      matches: (step): boolean => {
+        return stepContainsKeyword(step, 'lint')
+      },
+      parse: (output): ParsedStepMetrics | null => {
+        const cleanOutput = stripAnsi(`${output.stdout}\n${output.stderr}`)
+        const warnings = parseLintWarnings(cleanOutput)
+        if (warnings === null) {
+          return null
+        }
+
+        return {
+          label: 'warnings',
+          value: warnings,
+        }
+      },
+    },
+    {
       id: 'workspace-task-summary-parser',
       matches: (): boolean => true,
       parse: (output): ParsedStepMetrics | null => {
@@ -108,6 +126,26 @@ const parseWorkspaceTaskMetric = (cleanOutput: string): ParsedStepMetrics | null
   }
 
   return null
+}
+
+const parseLintWarnings = (cleanOutput: string): number | null => {
+  const warningMatches = [
+    ...cleanOutput.matchAll(/✖\s+\d+\s+problems?\s+\(\s*\d+\s+errors?,\s*(\d+)\s+warnings?\s*\)/gi),
+  ]
+  if (warningMatches.length === 0) {
+    return null
+  }
+
+  const warnings = warningMatches.reduce((sum, match) => {
+    const warningCountText = match[1]
+    if (!warningCountText) {
+      return sum
+    }
+
+    return sum + Number(warningCountText)
+  }, 0)
+
+  return warnings
 }
 
 const extractPnpmTaskHeaders = (cleanOutput: string): readonly string[] => {
