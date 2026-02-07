@@ -3,7 +3,7 @@ import type {
   PipelineRunResult,
   PipelineStep,
   StepResult,
-} from '@localci/ci-runner-core'
+} from '../internal/core/index.js'
 
 /**
  * Options for the pretty console reporter.

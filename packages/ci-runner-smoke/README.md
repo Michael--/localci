@@ -1,18 +1,17 @@
 # ci-runner Smoke Project
 
-This workspace package is a local consumer of `@localci/ci-runner-core`.
+This workspace package validates `@localci/ci-runner-cli` as an external consumer would use it.
 
 It validates realistic behavior with stubbed commands:
 
-- passed steps (`prepare`, `unit-tests`)
-- optional failure (`optional-docs` => `skipped`)
-- retry flow (`flaky-step`)
-- parser extraction (`TESTS_PASSED=7`)
-- timeout behavior (`--timeout-demo`)
+- passed steps
+- optional failures
+- retry flow
+- parser extraction from command output
+- timeout behavior
 
 ## Commands
 
-- `pnpm --filter @localci/ci-runner-smoke build`
 - `pnpm --filter @localci/ci-runner-smoke test`
 - `pnpm --filter @localci/ci-runner-smoke test:integration`
 - `pnpm --filter @localci/ci-runner-smoke smoke`

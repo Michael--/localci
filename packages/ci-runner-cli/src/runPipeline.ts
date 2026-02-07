@@ -7,7 +7,7 @@ import {
   formatPipelineResultAsJson,
   StepParserRegistry,
   type PipelineRunResult,
-} from '@localci/ci-runner-core'
+} from './internal/core/index.js'
 
 import { mapConfigToRun } from './config/mapConfigToRun.js'
 import { loadCiRunnerConfig } from './config/loadConfig.js'

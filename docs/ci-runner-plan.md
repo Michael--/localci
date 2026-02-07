@@ -2,7 +2,7 @@
 
 ## Current Status
 
-- [x] Milestone 1: Core package implemented and validated.
+- [x] Milestone 1: Internal runtime implemented and validated.
 - [x] Milestone 2: CLI package implemented and validated.
 - [x] Milestone 3: Pretty/JSON output and parser presets implemented.
 - [x] Milestone 5 (mostly): Integration tests, docs, and release dry-run workflow implemented.
@@ -19,7 +19,7 @@
 - [ ] Execute manual validation on real projects.
   - Run in at least 2 external repositories with real CI pipelines.
   - Record findings and required fixes.
-- [ ] Publish first versions of `@localci/ci-runner-core` and `@localci/ci-runner-cli`.
+- [ ] Publish first version of `@localci/ci-runner-cli`.
   - Gate: successful `pnpm run release:dry-run` and manual validation sign-off.
 
 ### P1: High-value, can be post-publish
@@ -39,7 +39,7 @@
 
 ### Architecture Baseline
 
-- [x] Extracted blueprint behavior into modular TypeScript packages.
+- [x] Extracted blueprint behavior into modular TypeScript modules.
 - [x] Domain contracts (`step`, `result`, `status`, `summary`).
 - [x] Execution layer (`command executor`, `timeout`, `retry`).
 - [x] Runner orchestration (`continue-on-fail`, deterministic exit code).
@@ -47,7 +47,7 @@
 - [x] Parser API + registry.
 - [x] Stable public API exports.
 
-### Core Package (`@localci/ci-runner-core`)
+### Internal Runtime (private in `@localci/ci-runner-cli`)
 
 - [x] Strict step result model (`passed`, `failed`, `skipped`, `timed_out`, retry metadata).
 - [x] Per-step timeout and retry policy.
@@ -57,7 +57,7 @@
 ### CLI Package (`@localci/ci-runner-cli`)
 
 - [x] Config loading (`ci.config.ts` and `ci.config.json`).
-- [x] Config-to-core mapping.
+- [x] Config-to-runtime mapping.
 - [x] Conditional step execution from env conditions.
 - [x] CLI flags: `--format`, `--verbose`, `--watch`, `--fail-fast`, `--config`, `--cwd`.
 - [x] Compact success output and detailed failure output.
@@ -66,10 +66,10 @@
 ### Publish Readiness
 
 - [x] Integration test flows for CLI (smoke package).
-- [x] Package READMEs for publishable modules.
+- [x] Package README for publishable module.
 - [x] API, migration, and release documentation.
 - [x] Release dry-run scripts and GitHub workflow.
-- [x] Dry-run pack artifacts for publishable packages.
+- [x] Dry-run pack artifact for publishable package.
 
 ## Next Execution Order
 

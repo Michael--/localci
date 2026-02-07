@@ -5,8 +5,8 @@ import type {
   CommandExecutor,
   PipelineReporter,
   StepOutputParser,
-} from '../src/index.js'
-import { createPipelineRunner, StepParserRegistry } from '../src/index.js'
+} from '../../../src/internal/core/index.js'
+import { createPipelineRunner, StepParserRegistry } from '../../../src/internal/core/index.js'
 
 const successResult = (): CommandExecutionResult => {
   return {

@@ -2,50 +2,7 @@
 
 ## Packages
 
-- `@localci/ci-runner-core`: step engine, execution contracts, parser registry, JSON formatter.
-- `@localci/ci-runner-cli`: config loader, CLI flags, pretty reporter, watch mode.
-
-## Core Runtime API (`@localci/ci-runner-core`)
-
-```ts
-import {
-  createNodeCommandExecutor,
-  createPipelineRunner,
-  StepParserRegistry,
-  type PipelineStep,
-} from '@localci/ci-runner-core'
-
-const steps: readonly PipelineStep[] = [
-  {
-    id: 'lint',
-    name: 'Lint',
-    command: 'pnpm run lint',
-  },
-]
-
-const runner = createPipelineRunner({
-  steps,
-  executor: createNodeCommandExecutor(),
-  parserResolver: new StepParserRegistry(),
-  continueOnError: true,
-})
-
-const result = await runner.run()
-process.exitCode = result.exitCode
-```
-
-### Step Status Model
-
-- `passed`
-- `failed`
-- `skipped`
-- `timed_out`
-
-Reason values:
-
-- `command_failed`
-- `command_timeout`
-- `optional_step_failed`
+- `@localci/ci-runner-cli`: config loader, internal step engine, CLI flags, pretty reporter, watch mode.
 
 ## CLI Runtime (`@localci/ci-runner-cli`)
 

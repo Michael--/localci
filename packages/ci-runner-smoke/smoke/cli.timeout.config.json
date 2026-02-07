@@ -1,0 +1,10 @@
+{
+  "steps": [
+    {
+      "id": "timeout-demo",
+      "name": "Timeout Demo",
+      "command": "node stubs/slow-step.cjs 400",
+      "timeoutMs": 100
+    }
+  ]
+}

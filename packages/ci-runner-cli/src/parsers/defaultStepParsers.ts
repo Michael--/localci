@@ -1,4 +1,4 @@
-import type { ParsedStepMetrics, StepOutputParser } from '@localci/ci-runner-core'
+import type { ParsedStepMetrics, StepOutputParser } from '../internal/core/index.js'
 
 /**
  * Creates default parsers for common test outputs.

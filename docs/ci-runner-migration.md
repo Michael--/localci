@@ -2,9 +2,8 @@
 
 ## Goal
 
-Replace the old single-file CI script with typed, modular packages:
+Replace the old single-file CI script with a typed CLI package:
 
-- `@localci/ci-runner-core`
 - `@localci/ci-runner-cli`
 
 ## What Stays the Same

@@ -2,7 +2,7 @@ import {
   StepParserRegistry,
   type PipelineStep,
   type StepExecutionOutput,
-} from '@localci/ci-runner-core'
+} from '../src/internal/core/index.js'
 import { describe, expect, it } from 'vitest'
 
 import { createDefaultStepParsers } from '../src/parsers/defaultStepParsers.js'
