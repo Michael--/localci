@@ -1,80 +1,70 @@
-# CI Runner Plan (Consolidated)
+# CI Runner Plan
+
+## Product Direction
+
+- `@localci/ci-runner-cli` is the only public package.
+- Runtime engine stays private inside the CLI package.
+- Product is CLI-first, with editor integration as the primary UX extension.
 
 ## Current Status
 
-- [x] Milestone 1: Internal runtime implemented and validated.
-- [x] Milestone 2: CLI package implemented and validated.
-- [x] Milestone 3: Pretty/JSON output and parser presets implemented.
-- [x] Milestone 5 (mostly): Integration tests, docs, and release dry-run workflow implemented.
-- [ ] Initial npm publish is intentionally pending.
+- [x] Internal runtime implemented and validated.
+- [x] CLI implemented with typed config, pretty/json output, watch mode, fail-fast, retries, and timeouts.
+- [x] Smoke and integration tests centered on external CLI usage.
+- [x] Release dry-run workflow and packaging in place for the CLI package.
+- [ ] Initial npm publish is pending.
 
-## Reassessed Open Items (Priority)
+## Strategic Decisions
 
-### P0: Required before first npm publish
+- [x] Do not publish `ci-runner-core` as standalone package.
+- [x] Prefer VS Code extension over standalone web server/webview as the first UI investment.
+- [ ] Revisit web UI only if multi-user/shared history becomes a hard requirement.
 
-- [ ] Finalize package naming and scope strategy.
-  - Decision needed: keep `@localci/*` or move to final public scope.
-- [ ] Define and document compatibility target.
-  - Minimum: Node LTS range and supported OS matrix.
-- [ ] Execute manual validation on real projects.
-  - Run in at least 2 external repositories with real CI pipelines.
-  - Record findings and required fixes.
+## Priority Backlog
+
+### P0: Release-critical
+
+- [ ] Finalize public scope and naming strategy.
+- [ ] Define compatibility target (Node LTS range and OS matrix).
+- [ ] Run validation in at least 2 external repositories.
 - [ ] Publish first version of `@localci/ci-runner-cli`.
-  - Gate: successful `pnpm run release:dry-run` and manual validation sign-off.
 
-### P1: High-value, can be post-publish
+### P1: Adoption and CI ecosystem
 
-- [ ] Define explicit v1 product boundaries (CLI-first scope statement).
-- [ ] Add optional `junit` formatter.
+- [ ] Add optional `junit` formatter output.
 - [ ] Add optional GitHub Actions summary formatter.
+- [ ] Publish a short "recipes" doc for common pipelines (lint/test/build/e2e).
 
-### P2: Product extensions (post-v1)
+### P2: VS Code extension (Activity Bar first)
 
-- [x] Add watch mode (basic implementation is present in CLI runner).
-- [ ] Add daemon/background mode.
-- [ ] Store run history (SQLite).
-- [ ] Add minimal web UI for build history and step drilldown.
+- [ ] Create `ci-runner-vscode` extension skeleton.
+- [ ] Add Activity Bar view with detected configs and runnable entries.
+- [ ] Add actions: run selected config, run with `--watch`, run with `--fail-fast`.
+- [ ] Route detailed run output to VS Code Output Channel.
+- [ ] Keep sidebar focused on overview/state (configs, last status, quick actions).
+- [ ] Parse CLI `--format json` for structured status badges and summary counts.
+- [ ] Add workspace settings for default config path and default run profile.
 
-## Completed Scope (Consolidated)
+### P3: Deferred UX expansions
 
-### Architecture Baseline
+- [ ] Optional local run history persistence for extension (`workspace/.ci-runner/history.jsonl` or SQLite).
+- [ ] Optional details panel for last run drilldown.
+- [ ] Reassess standalone web UI only after extension usage feedback.
 
-- [x] Extracted blueprint behavior into modular TypeScript modules.
-- [x] Domain contracts (`step`, `result`, `status`, `summary`).
-- [x] Execution layer (`command executor`, `timeout`, `retry`).
-- [x] Runner orchestration (`continue-on-fail`, deterministic exit code).
-- [x] Output adapters (`pretty`, `json`).
-- [x] Parser API + registry.
-- [x] Stable public API exports.
+## VS Code Extension Feasibility Note
 
-### Internal Runtime (private in `@localci/ci-runner-cli`)
+This is fully feasible with standard VS Code APIs:
 
-- [x] Strict step result model (`passed`, `failed`, `skipped`, `timed_out`, retry metadata).
-- [x] Per-step timeout and retry policy.
-- [x] Optional-step non-blocking behavior.
-- [x] Unit tests for runner and parser behavior.
+- Tree View in Activity Bar for runnable entries.
+- Commands + task/terminal execution for run actions.
+- Output Channel for verbose logs and command output.
+- JSON parsing from CLI output for lightweight visual status.
 
-### CLI Package (`@localci/ci-runner-cli`)
+No protocol or backend service is required for v1 of the extension.
 
-- [x] Config loading (`ci.config.ts` and `ci.config.json`).
-- [x] Config-to-runtime mapping.
-- [x] Conditional step execution from env conditions.
-- [x] CLI flags: `--format`, `--verbose`, `--watch`, `--fail-fast`, `--config`, `--cwd`.
-- [x] Compact success output and detailed failure output.
-- [x] Default parser presets for vitest and playwright summaries.
+## Execution Order
 
-### Publish Readiness
-
-- [x] Integration test flows for CLI (smoke package).
-- [x] Package README for publishable module.
-- [x] API, migration, and release documentation.
-- [x] Release dry-run scripts and GitHub workflow.
-- [x] Dry-run pack artifact for publishable package.
-
-## Next Execution Order
-
-- [ ] Confirm final package scope and naming.
-- [ ] Run manual validation in real repositories.
-- [ ] Apply fixes from manual validation.
-- [ ] Publish initial versions.
-- [ ] Re-evaluate P1 formatter backlog based on first adopter feedback.
+- [ ] Complete P0 and publish initial CLI release.
+- [ ] Implement P1 formatters and docs based on first adopter feedback.
+- [ ] Build P2 extension MVP (overview in sidebar, details in Output Channel).
+- [ ] Evaluate history/drilldown/web UI needs after real usage data.
