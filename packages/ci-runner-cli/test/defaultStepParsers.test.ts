@@ -67,4 +67,38 @@ describe('createDefaultStepParsers', () => {
       value: 5,
     })
   })
+
+  it('extracts workspace task count from pnpm recursive output', () => {
+    const registry = new StepParserRegistry(createDefaultStepParsers())
+    const step: PipelineStep = {
+      id: 'build',
+      name: 'Build',
+      command: 'pnpm run build',
+    }
+
+    const output = createOutput('Scope: 12 of 37 workspace projects')
+    const parsed = registry.parse(step, output)
+
+    expect(parsed).toEqual({
+      label: 'tasks',
+      value: 12,
+    })
+  })
+
+  it('extracts workspace task count from turbo output', () => {
+    const registry = new StepParserRegistry(createDefaultStepParsers())
+    const step: PipelineStep = {
+      id: 'build',
+      name: 'Build',
+      command: 'turbo run build',
+    }
+
+    const output = createOutput('Tasks:    5 successful, 5 total')
+    const parsed = registry.parse(step, output)
+
+    expect(parsed).toEqual({
+      label: 'tasks',
+      value: 5,
+    })
+  })
 })
