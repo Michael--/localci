@@ -71,7 +71,7 @@ importers:
 
   packages/ci-runner-smoke:
     devDependencies:
-      '@localci/ci-runner-cli':
+      '@number10/ci-runner-cli':
         specifier: workspace:*
         version: link:../ci-runner-cli
 

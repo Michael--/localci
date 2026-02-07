@@ -2,9 +2,9 @@
 
 ## Packages
 
-- `@localci/ci-runner-cli`: config loader, internal step engine, CLI flags, pretty reporter, watch mode.
+- `@number10/ci-runner-cli`: config loader, internal step engine, CLI flags, pretty reporter, watch mode.
 
-## CLI Runtime (`@localci/ci-runner-cli`)
+## CLI Runtime (`@number10/ci-runner-cli`)
 
 ### Supported Flags
 
@@ -50,7 +50,7 @@
 Typed TypeScript variant:
 
 ```ts
-import type { CiRunnerConfig } from '@localci/ci-runner-cli/types'
+import type { CiRunnerConfig } from '@number10/ci-runner-cli/types'
 
 const config = {
   output: {

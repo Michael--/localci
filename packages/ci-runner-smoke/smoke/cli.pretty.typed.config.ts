@@ -1,4 +1,4 @@
-import type { CiRunnerConfig } from '@localci/ci-runner-cli/types'
+import type { CiRunnerConfig } from '@number10/ci-runner-cli/types'
 
 const config = {
   output: {

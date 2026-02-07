@@ -5,7 +5,7 @@
 - Use Semantic Versioning per publishable package.
 - Create release commits with Conventional Commits.
 - Publishable packages in this repository:
-  - `@localci/ci-runner-cli`
+  - `@number10/ci-runner-cli`
 
 ## Local Release Dry-Run
 

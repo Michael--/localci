@@ -1,8 +1,8 @@
-# @localci/ci-runner-cli
+# @number10/ci-runner-cli
 
 Typed, config-driven CI command runner for local development and CI environments.
 
-`@localci/ci-runner-cli` helps you replace ad-hoc shell scripts with a predictable pipeline runner that is easy to read, version, and maintain.
+`@number10/ci-runner-cli` helps you replace ad-hoc shell scripts with a predictable pipeline runner that is easy to read, version, and maintain.
 
 ## Why Use It
 
@@ -24,7 +24,7 @@ Most CI scripts start simple and become fragile over time:
 ## Install
 
 ```bash
-pnpm add -D @localci/ci-runner-cli
+pnpm add -D @number10/ci-runner-cli
 ```
 
 ## Usage
@@ -64,7 +64,7 @@ ci-runner --format json
 - Optional non-blocking steps (`optional: true`) for best-effort checks.
 - Conditional execution via environment filters (`when.env`).
 - Readable local output and complete machine-readable output.
-- Type-safe config authoring with `@localci/ci-runner-cli/types`.
+- Type-safe config authoring with `@number10/ci-runner-cli/types`.
 
 ## Config File
 
@@ -113,7 +113,7 @@ Example:
 Typed TypeScript example:
 
 ```ts
-import type { CiRunnerConfig } from '@localci/ci-runner-cli/types'
+import type { CiRunnerConfig } from '@number10/ci-runner-cli/types'
 
 const config = {
   output: {
@@ -166,6 +166,6 @@ export default config
 This package exposes:
 
 - the executable CLI (`ci-runner`)
-- user-facing config types (`@localci/ci-runner-cli/types`)
+- user-facing config types (`@number10/ci-runner-cli/types`)
 
 Runtime internals are intentionally private and not part of the public API contract.

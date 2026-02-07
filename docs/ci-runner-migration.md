@@ -4,7 +4,7 @@
 
 Replace the old single-file CI script with a typed CLI package:
 
-- `@localci/ci-runner-cli`
+- `@number10/ci-runner-cli`
 
 ## What Stays the Same
 
@@ -53,7 +53,7 @@ After:
 Typed TS config (recommended for editor type safety):
 
 ```ts
-import type { CiRunnerConfig } from '@localci/ci-runner-cli/types'
+import type { CiRunnerConfig } from '@number10/ci-runner-cli/types'
 
 const config = {
   steps: [

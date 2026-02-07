@@ -2,7 +2,7 @@
 
 ## Product Direction
 
-- `@localci/ci-runner-cli` is the only public package.
+- `@number10/ci-runner-cli` is the only public package.
 - Runtime engine stays private inside the CLI package.
 - Product is CLI-first, with editor integration as the primary UX extension.
 
@@ -27,7 +27,7 @@
 - [ ] Finalize public scope and naming strategy.
 - [ ] Define compatibility target (Node LTS range and OS matrix).
 - [ ] Run validation in at least 2 external repositories.
-- [ ] Publish first version of `@localci/ci-runner-cli`.
+- [ ] Publish first version of `@number10/ci-runner-cli`.
 
 ### P1: Adoption and CI ecosystem
 

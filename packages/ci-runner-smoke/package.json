@@ -1,23 +1,23 @@
 {
-  "name": "@localci/ci-runner-smoke",
+  "name": "@number10/ci-runner-smoke",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "description": "Smoke project validating ci-runner-cli external usage.",
   "scripts": {
     "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true }); require('node:fs').rmSync('.tmp', { recursive: true, force: true })\"",
-    "pretypecheck": "pnpm --filter @localci/ci-runner-cli run build",
+    "pretypecheck": "pnpm --filter @number10/ci-runner-cli run build",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "pretest": "pnpm --filter @localci/ci-runner-cli run build",
+    "pretest": "pnpm --filter @number10/ci-runner-cli run build",
     "lint": "eslint \"test/**/*.ts\"",
     "test": "vitest run --config vitest.config.ts",
-    "pretest:integration": "pnpm --filter @localci/ci-runner-cli run build",
+    "pretest:integration": "pnpm --filter @number10/ci-runner-cli run build",
     "test:integration": "vitest run --config vitest.integration.config.ts",
-    "presmoke:json": "pnpm --filter @localci/ci-runner-cli run build",
-    "presmoke:timeout": "pnpm --filter @localci/ci-runner-cli run build",
-    "presmoke:cli:pretty": "pnpm --filter @localci/ci-runner-cli run build",
-    "presmoke:cli:pretty:optional": "pnpm --filter @localci/ci-runner-cli run build",
-    "presmoke:cli:pretty:typed": "pnpm --filter @localci/ci-runner-cli run build",
+    "presmoke:json": "pnpm --filter @number10/ci-runner-cli run build",
+    "presmoke:timeout": "pnpm --filter @number10/ci-runner-cli run build",
+    "presmoke:cli:pretty": "pnpm --filter @number10/ci-runner-cli run build",
+    "presmoke:cli:pretty:optional": "pnpm --filter @number10/ci-runner-cli run build",
+    "presmoke:cli:pretty:typed": "pnpm --filter @number10/ci-runner-cli run build",
     "smoke": "pnpm run smoke:json",
     "smoke:json": "node --enable-source-maps ../ci-runner-cli/dist/cli.js --config smoke/cli.pretty.pass.config.json --cwd . --format json",
     "smoke:timeout": "node --enable-source-maps ../ci-runner-cli/dist/cli.js --config smoke/cli.timeout.config.json --cwd . --format json",
@@ -26,7 +26,7 @@
     "smoke:cli:pretty:typed": "node --enable-source-maps ../ci-runner-cli/dist/cli.js --config smoke/cli.pretty.typed.config.ts --cwd . --format pretty"
   },
   "devDependencies": {
-    "@localci/ci-runner-cli": "workspace:*"
+    "@number10/ci-runner-cli": "workspace:*"
   },
   "engines": {
     "node": ">=20.19.0",

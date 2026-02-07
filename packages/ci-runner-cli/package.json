@@ -1,5 +1,5 @@
 {
-  "name": "@localci/ci-runner-cli",
+  "name": "@number10/ci-runner-cli",
   "version": "0.1.0",
   "private": false,
   "type": "module",
