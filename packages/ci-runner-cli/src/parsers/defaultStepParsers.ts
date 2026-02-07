@@ -63,9 +63,7 @@ export const createDefaultStepParsers = (): readonly StepOutputParser[] => {
     },
     {
       id: 'workspace-task-summary-parser',
-      matches: (step): boolean => {
-        return WORKSPACE_TASK_KEYWORDS.some((keyword) => stepContainsKeyword(step, keyword))
-      },
+      matches: (): boolean => true,
       parse: (output): ParsedStepMetrics | null => {
         const cleanOutput = stripAnsi(`${output.stdout}\n${output.stderr}`)
         return parseWorkspaceTaskMetric(cleanOutput)
@@ -73,8 +71,6 @@ export const createDefaultStepParsers = (): readonly StepOutputParser[] => {
     },
   ]
 }
-
-const WORKSPACE_TASK_KEYWORDS = ['build', 'lint', 'typecheck', 'check', 'gen', 'clean'] as const
 
 const parseWorkspaceTaskMetric = (cleanOutput: string): ParsedStepMetrics | null => {
   const turboTaskMatch = cleanOutput.match(/Tasks:\s*\d+\s+\w+,\s*(\d+)\s+total/i)

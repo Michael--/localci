@@ -143,4 +143,31 @@ describe('createDefaultStepParsers', () => {
       value: 2,
     })
   })
+
+  it('extracts pnpm scope metric from a real-world multiline workspace output', () => {
+    const registry = new StepParserRegistry(createDefaultStepParsers())
+    const step: PipelineStep = {
+      id: 'generate',
+      name: 'Generate',
+      command: 'pnpm run gen',
+    }
+
+    const output = createOutput(
+      [
+        '> modular-runtime@0.0.1 gen /repo/modular-runtime',
+        '> pnpm -r --if-present run gen',
+        '',
+        'Scope: 25 of 26 workspace projects',
+        'apps/calculator-client-cpp gen$ pnpm -C ../../packages/proto gen',
+        'apps/calculator-client-rust gen$ pnpm -C ../../packages/proto gen',
+        'apps/calculator-server-rust gen$ pnpm -C ../../packages/proto gen',
+      ].join('\n')
+    )
+    const parsed = registry.parse(step, output)
+
+    expect(parsed).toEqual({
+      label: 'tasks',
+      value: 25,
+    })
+  })
 })
