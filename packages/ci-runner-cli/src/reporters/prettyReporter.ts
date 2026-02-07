@@ -68,7 +68,7 @@ export class PrettyReporter implements PipelineReporter {
     if (result.status === 'skipped') {
       process.stdout.write(
         colorize(
-          `⚠ ${result.name} skipped (${result.reason ?? 'no reason'}, ${duration})\n`,
+          `ℹ ${result.name} skipped (${result.reason ?? 'no reason'}, ${duration})\n`,
           'yellow'
         )
       )
@@ -107,7 +107,7 @@ export class PrettyReporter implements PipelineReporter {
     )
 
     if (result.exitCode === 0) {
-      process.stdout.write(colorize('Result: PASS\n', 'green'))
+      process.stdout.write(colorize('Result: ✅ PASS\n', 'green'))
       return
     }
 

@@ -63,7 +63,7 @@ describe('ci-runner-cli smoke', () => {
         '✓ Prepare <duration>',
         '',
         'Summary: total=1 passed=1 skipped=0 failed=0 timedOut=0 duration=<duration>',
-        'Result: PASS',
+        'Result: ✅ PASS',
       ].join('\n')
     )
   })
@@ -227,7 +227,7 @@ describe('ci-runner-cli smoke', () => {
     const stdout = normalizePrettyOutput(result.stdout)
 
     expect(result.exitCode).toBe(0)
-    expect(stdout).toContain('Result: PASS')
+    expect(stdout).toContain('Result: ✅ PASS')
     expect(stdout).toContain('Summary: total=2 passed=2 skipped=0 failed=0 timedOut=0')
   })
 
@@ -252,7 +252,7 @@ describe('ci-runner-cli smoke', () => {
     const stdout = normalizePrettyOutput(result.stdout)
 
     expect(result.exitCode).toBe(0)
-    expect(stdout).toContain('⚠ E2E Tests skipped (optional_step_failed, <duration>)')
+    expect(stdout).toContain('ℹ E2E Tests skipped (optional_step_failed, <duration>)')
     expect(stdout).toContain('note: missing script "test:e2e"')
     expect(stdout).not.toContain('stdout:')
   })
@@ -294,9 +294,9 @@ describe('ci-runner-cli smoke', () => {
 
     expect(result.exitCode).toBe(0)
     expect(stdout).toContain(
-      'i Skipping Integration Tests (set RUN_INTEGRATION_TESTS=true to enable)'
+      'ℹ️  Skipping Integration Tests (set RUN_INTEGRATION_TESTS=true to enable)'
     )
-    expect(stdout).toContain('i Skipping Clean (enabled=false)')
+    expect(stdout).toContain('ℹ️  Skipping Clean (enabled=false)')
     expect(stdout).toContain('ci-runner: executing 1 steps')
     expect(stdout).toContain('Summary: total=1 passed=1 skipped=0 failed=0 timedOut=0')
   })
@@ -323,10 +323,14 @@ const writeSmokeConfig = async (steps: readonly SmokeConfigStep[]): Promise<stri
 }
 
 const runCli = async (args: readonly string[]): Promise<CliRunResult> => {
+  const cliEnv: NodeJS.ProcessEnv = { ...process.env }
+  delete cliEnv.npm_config_if_present
+  delete cliEnv.NPM_CONFIG_IF_PRESENT
+
   return await new Promise((resolvePromise, rejectPromise) => {
     const child = spawn(process.execPath, [cliEntryPath, ...args], {
       cwd: workspaceRoot,
-      env: process.env,
+      env: cliEnv,
       stdio: ['ignore', 'pipe', 'pipe'],
     })
 

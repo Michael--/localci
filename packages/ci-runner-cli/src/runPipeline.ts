@@ -81,18 +81,18 @@ const printExcludedStepHints = (
 
   for (const step of excludedSteps) {
     if (step.reason === 'disabled') {
-      process.stdout.write(`i Skipping ${step.name} (enabled=false)\n`)
+      process.stdout.write(`ℹ️  Skipping ${step.name} (enabled=false)\n`)
       continue
     }
 
     if (step.reason === 'env_mismatch' && step.requiredEnv) {
       process.stdout.write(
-        `i Skipping ${step.name} (set ${formatRequiredEnv(step.requiredEnv)} to enable)\n`
+        `ℹ️  Skipping ${step.name} (set ${formatRequiredEnv(step.requiredEnv)} to enable)\n`
       )
       continue
     }
 
-    process.stdout.write(`i Skipping ${step.name}\n`)
+    process.stdout.write(`ℹ️  Skipping ${step.name}\n`)
   }
 }
 
