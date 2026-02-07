@@ -1,6 +1,25 @@
 # @localci/ci-runner-cli
 
-CLI package for running typed CI pipelines based on config files.
+Typed, config-driven CI command runner for local development and CI environments.
+
+`@localci/ci-runner-cli` helps you replace ad-hoc shell scripts with a predictable pipeline runner that is easy to read, version, and maintain.
+
+## Why Use It
+
+Most CI scripts start simple and become fragile over time:
+
+- inconsistent output across projects
+- unclear failure handling
+- duplicated retry/timeout logic
+- hard-to-parse logs in CI systems
+
+`ci-runner` gives you one consistent contract:
+
+- explicit step model (`id`, `name`, `command`, `timeout`, `retry`, `optional`)
+- deterministic exit behavior (`0` pass, `1` hard failure)
+- compact human output (`pretty`) or machine output (`json`)
+- typed config support for editor feedback (`ci.config.ts`)
+- optional watch mode for local feedback loops
 
 ## Install
 
@@ -14,14 +33,38 @@ pnpm add -D @localci/ci-runner-cli
 ci-runner --format pretty
 ```
 
-Supported flags:
+## Quick Start
 
-- `--config <path>`
-- `--format <pretty|json>`
-- `--verbose`
-- `--watch`
-- `--fail-fast`
-- `--cwd <path>`
+Create `ci.config.json`:
+
+```json
+{
+  "steps": [
+    { "id": "lint", "name": "Lint", "command": "pnpm run lint" },
+    { "id": "test", "name": "Test", "command": "pnpm run test" }
+  ]
+}
+```
+
+Run:
+
+```bash
+ci-runner --format pretty
+```
+
+Use JSON output in CI:
+
+```bash
+ci-runner --format json
+```
+
+## What You Get
+
+- Stable step orchestration with retries and timeouts.
+- Optional non-blocking steps (`optional: true`) for best-effort checks.
+- Conditional execution via environment filters (`when.env`).
+- Readable local output and complete machine-readable output.
+- Type-safe config authoring with `@localci/ci-runner-cli/types`.
 
 ## Config File
 
@@ -32,9 +75,13 @@ Example:
 ```json
 {
   "continueOnError": true,
+  "cwd": ".",
   "output": {
     "format": "pretty",
     "verbose": false
+  },
+  "env": {
+    "CI": "true"
   },
   "steps": [
     {
@@ -47,9 +94,16 @@ Example:
       "name": "Unit Tests",
       "command": "pnpm run test",
       "timeoutMs": 60000,
+      "optional": false,
       "retry": {
         "maxAttempts": 2,
-        "delayMs": 250
+        "delayMs": 250,
+        "retryOnTimeout": false
+      },
+      "when": {
+        "env": {
+          "RUN_TESTS": "true"
+        }
       }
     }
   ]
@@ -86,7 +140,32 @@ const config = {
 export default config
 ```
 
+## CLI Flags
+
+- `--config <path>` Explicit config file path.
+- `--format <pretty|json>` Output format override.
+- `--verbose` Print stdout/stderr also for successful steps in pretty mode.
+- `--watch` Re-run on file changes.
+- `--fail-fast` Stop after first hard failure.
+- `--cwd <path>` Base working directory.
+- `-h, --help` Show usage help.
+
 ## Output Modes
 
-- `pretty`: compact success output, detailed error output
-- `json`: full machine-readable run payload
+- `pretty`: concise success output, detailed failure diagnostics.
+- `json`: full run payload with step results, summary, timestamps, and exit code.
+
+## Exit Behavior
+
+- Exit code `0`: no hard failures.
+- Exit code `1`: at least one `failed` or `timed_out` step.
+- `optional` step failures become `skipped` and do not fail the run.
+
+## Public Surface
+
+This package exposes:
+
+- the executable CLI (`ci-runner`)
+- user-facing config types (`@localci/ci-runner-cli/types`)
+
+Runtime internals are intentionally private and not part of the public API contract.
