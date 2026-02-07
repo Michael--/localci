@@ -22,7 +22,7 @@
     "prepare": "husky",
     "ci": "pnpm run check && pnpm run smoke",
     "release:clean": "node -e \"require('node:fs').rmSync('.artifacts', { recursive: true, force: true })\"",
-    "release:pack": "pnpm --filter @localci/ci-runner-core pack --pack-destination .artifacts/packs && pnpm --filter @localci/ci-runner-cli pack --pack-destination .artifacts/packs",
+    "release:pack": "pnpm --filter @localci/ci-runner-cli pack --pack-destination .artifacts/packs",
     "release:dry-run": "pnpm run release:clean && pnpm run check:release && pnpm run release:pack",
     "docs:build": "pnpm -C docs-site build"
   },

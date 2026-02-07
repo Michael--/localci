@@ -23,6 +23,7 @@
   ],
   "scripts": {
     "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "prebuild": "pnpm --filter @localci/ci-runner-core run build",
     "build": "vite build --config vite.config.ts && tsc -p tsconfig.build.json",
     "pretypecheck": "pnpm --filter @localci/ci-runner-core run build",
     "typecheck": "tsc -p tsconfig.json --noEmit",
@@ -31,8 +32,10 @@
     "test": "vitest run --config vitest.config.ts"
   },
   "dependencies": {
-    "@localci/ci-runner-core": "workspace:*",
     "typescript": "^5.9.3"
+  },
+  "devDependencies": {
+    "@localci/ci-runner-core": "workspace:*"
   },
   "engines": {
     "node": ">=20.19.0",

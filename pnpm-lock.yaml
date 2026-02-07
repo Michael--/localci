@@ -65,12 +65,13 @@ importers:
 
   packages/ci-runner-cli:
     dependencies:
-      '@localci/ci-runner-core':
-        specifier: workspace:*
-        version: link:../ci-runner-core
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
+    devDependencies:
+      '@localci/ci-runner-core':
+        specifier: workspace:*
+        version: link:../ci-runner-core
 
   packages/ci-runner-core: {}
 

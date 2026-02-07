@@ -1,8 +1,42 @@
 import { resolve } from 'node:path'
 
-import type { PipelineRunOptions, PipelineStep } from '@localci/ci-runner-core'
-
 import type { CiRunnerConfig, CliConfigStep } from './types.js'
+
+/**
+ * Runtime step contract passed into the pipeline engine.
+ */
+export interface MappedPipelineStep {
+  /** Stable step id. */
+  readonly id: string
+  /** Display name shown in output. */
+  readonly name: string
+  /** Shell command to execute. */
+  readonly command: string
+  /** Working directory override for this step. */
+  readonly cwd?: string
+  /** Environment additions for this step. */
+  readonly env?: Readonly<Record<string, string>>
+  /** Optional failure policy. */
+  readonly optional?: boolean
+  /** Step timeout in milliseconds. */
+  readonly timeoutMs?: number
+  /** Retry policy for this step. */
+  readonly retry?: CliConfigStep['retry']
+}
+
+/**
+ * Runtime options subset consumed by the pipeline engine.
+ */
+export interface MappedPipelineRunOptions {
+  /** Ordered runtime steps. */
+  readonly steps: readonly MappedPipelineStep[]
+  /** Base working directory for step execution. */
+  readonly cwd: string
+  /** Base environment for step execution. */
+  readonly env: NodeJS.ProcessEnv
+  /** Continue after hard failures when true. */
+  readonly continueOnError: boolean
+}
 
 /**
  * Maps loaded config to core run options.
@@ -16,7 +50,7 @@ export const mapConfigToRun = (
   config: CiRunnerConfig,
   cwd: string,
   failFast: boolean
-): Pick<PipelineRunOptions, 'steps' | 'cwd' | 'env' | 'continueOnError'> => {
+): MappedPipelineRunOptions => {
   const runCwd = config.cwd ? resolve(cwd, config.cwd) : cwd
   const env = { ...process.env, ...config.env }
 
@@ -34,7 +68,7 @@ export const mapConfigToRun = (
   }
 }
 
-const mapStep = (step: CliConfigStep, runCwd: string): PipelineStep => {
+const mapStep = (step: CliConfigStep, runCwd: string): MappedPipelineStep => {
   return {
     id: step.id,
     name: step.name,

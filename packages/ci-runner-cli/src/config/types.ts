@@ -1,9 +1,19 @@
-import type { StepRetryPolicy } from '@localci/ci-runner-core'
-
 /**
  * Supported output formats for the CLI.
  */
 export type CliOutputFormat = 'pretty' | 'json'
+
+/**
+ * Retry behavior for a config step.
+ */
+export interface StepRetryPolicy {
+  /** Maximum execution attempts including the first run. */
+  readonly maxAttempts: number
+  /** Delay between retry attempts in milliseconds. */
+  readonly delayMs?: number
+  /** When true, retries are also allowed after timeout failures. */
+  readonly retryOnTimeout?: boolean
+}
 
 /**
  * Environment-based condition map for one step.

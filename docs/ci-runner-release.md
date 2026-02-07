@@ -3,10 +3,8 @@
 ## Versioning Policy
 
 - Use Semantic Versioning per publishable package.
-- Keep `@localci/ci-runner-core` and `@localci/ci-runner-cli` versions aligned for v1.
 - Create release commits with Conventional Commits.
 - Publishable packages in this repository:
-  - `@localci/ci-runner-core`
   - `@localci/ci-runner-cli`
 
 ## Local Release Dry-Run
