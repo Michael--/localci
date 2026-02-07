@@ -85,6 +85,23 @@ describe('createDefaultStepParsers', () => {
     })
   })
 
+  it('extracts workspace task count from pnpm scope output with all prefix', () => {
+    const registry = new StepParserRegistry(createDefaultStepParsers())
+    const step: PipelineStep = {
+      id: 'lint',
+      name: 'Lint',
+      command: 'pnpm -r --if-present run lint',
+    }
+
+    const output = createOutput('Scope: all 25 workspace projects')
+    const parsed = registry.parse(step, output)
+
+    expect(parsed).toEqual({
+      label: 'tasks',
+      value: 25,
+    })
+  })
+
   it('extracts workspace task count from turbo output', () => {
     const registry = new StepParserRegistry(createDefaultStepParsers())
     const step: PipelineStep = {
@@ -99,6 +116,31 @@ describe('createDefaultStepParsers', () => {
     expect(parsed).toEqual({
       label: 'tasks',
       value: 5,
+    })
+  })
+
+  it('falls back to counting unique pnpm task headers when scope line is missing', () => {
+    const registry = new StepParserRegistry(createDefaultStepParsers())
+    const step: PipelineStep = {
+      id: 'gen',
+      name: 'Generate',
+      command: 'pnpm -r --if-present run gen',
+    }
+
+    const output = createOutput(
+      [
+        'apps/service-a gen$ pnpm -C ../../packages/proto gen',
+        '│ generating...',
+        'apps/service-b gen$ pnpm -C ../../packages/proto gen',
+        '│ generating...',
+        'apps/service-a gen$ pnpm -C ../../packages/proto gen',
+      ].join('\n')
+    )
+    const parsed = registry.parse(step, output)
+
+    expect(parsed).toEqual({
+      label: 'tasks',
+      value: 2,
     })
   })
 })

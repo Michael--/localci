@@ -68,38 +68,61 @@ export const createDefaultStepParsers = (): readonly StepOutputParser[] => {
       },
       parse: (output): ParsedStepMetrics | null => {
         const cleanOutput = stripAnsi(`${output.stdout}\n${output.stderr}`)
-
-        const turboTaskMatch = cleanOutput.match(/Tasks:\s*\d+\s+\w+,\s*(\d+)\s+total/i)
-        if (turboTaskMatch) {
-          return {
-            label: 'tasks',
-            value: Number(turboTaskMatch[1]),
-          }
-        }
-
-        const pnpmScopeMatch = cleanOutput.match(/Scope:\s*(\d+)\s+of\s+\d+\s+workspace projects/i)
-        if (pnpmScopeMatch) {
-          return {
-            label: 'tasks',
-            value: Number(pnpmScopeMatch[1]),
-          }
-        }
-
-        const nxProjectMatch = cleanOutput.match(/Successfully ran target .* for (\d+) projects?/i)
-        if (nxProjectMatch) {
-          return {
-            label: 'tasks',
-            value: Number(nxProjectMatch[1]),
-          }
-        }
-
-        return null
+        return parseWorkspaceTaskMetric(cleanOutput)
       },
     },
   ]
 }
 
 const WORKSPACE_TASK_KEYWORDS = ['build', 'lint', 'typecheck', 'check', 'gen', 'clean'] as const
+
+const parseWorkspaceTaskMetric = (cleanOutput: string): ParsedStepMetrics | null => {
+  const turboTaskMatch = cleanOutput.match(/Tasks:\s*\d+\s+\w+,\s*(\d+)\s+total/i)
+  if (turboTaskMatch) {
+    return {
+      label: 'tasks',
+      value: Number(turboTaskMatch[1]),
+    }
+  }
+
+  const pnpmScopeMatch = cleanOutput.match(
+    /Scope:\s*(?:all\s+)?(\d+)(?:\s+of\s+\d+)?\s+workspace\s+projects?/i
+  )
+  if (pnpmScopeMatch) {
+    return {
+      label: 'tasks',
+      value: Number(pnpmScopeMatch[1]),
+    }
+  }
+
+  const nxProjectMatch = cleanOutput.match(/Successfully ran target .* for (\d+) projects?/i)
+  if (nxProjectMatch) {
+    return {
+      label: 'tasks',
+      value: Number(nxProjectMatch[1]),
+    }
+  }
+
+  const taskHeaders = extractPnpmTaskHeaders(cleanOutput)
+  if (taskHeaders.length > 0) {
+    return {
+      label: 'tasks',
+      value: taskHeaders.length,
+    }
+  }
+
+  return null
+}
+
+const extractPnpmTaskHeaders = (cleanOutput: string): readonly string[] => {
+  const headerMatches =
+    cleanOutput.match(/(^|\n)(?!\s*[|│])([^\n$]+?\s+[a-z0-9:_-]+\$\s[^\n]*)/gi) ?? []
+  const normalized = headerMatches
+    .map((line) => line.replace(/^\s+/, '').trim())
+    .map((line) => line.replace(/\s+/g, ' '))
+
+  return [...new Set(normalized)]
+}
 
 const stepContainsKeyword = (
   step: {
