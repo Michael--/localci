@@ -45,6 +45,10 @@
 - [x] Keep sidebar focused on overview/state (configs, last status, quick actions).
 - [x] Parse CLI `--format json` for structured status badges and summary counts.
 - [x] Add workspace settings for default config path and default run profile.
+- [ ] Add named run targets inside one config file to support partial, frequent workflows.
+- [ ] Show target names in the tree (for example `CI Full`, `Lint`, `Unit Tests`) instead of only file paths.
+- [ ] Keep existing run profiles (`standard`, `watch`, `fail-fast`) available per target.
+- [ ] Keep backward compatibility for single-config/single-pipeline repositories.
 
 ### P3: Deferred UX expansions
 
@@ -63,9 +67,72 @@ This is fully feasible with standard VS Code APIs:
 
 No protocol or backend service is required for v1 of the extension.
 
+## Named Run Targets (Design Draft)
+
+### Problem
+
+- Monorepos contain many npm scripts; the built-in npm scripts view becomes noisy.
+- The current CI Runner tree is config-file centric and exposes one pipeline per config file.
+- Teams need fast access to common subsets (`lint`, `test`, `build`) without editing commands each time.
+
+### Goal
+
+- Allow multiple named runnable targets in one `ci.config.ts`/`ci.config.json`.
+- Render those names directly in the VS Code CI Runner view.
+- Preserve one-command full CI execution.
+
+### Proposed Model (Backward-Compatible)
+
+- Extend `CiRunnerConfig` with optional `targets`.
+- Keep existing `steps` as the default full pipeline.
+- When `targets` is missing, behavior stays exactly as today.
+
+Proposed shape:
+
+```ts
+interface CiRunnerTarget {
+  readonly id: string
+  readonly name: string
+  readonly description?: string
+  readonly includeStepIds?: readonly string[]
+  readonly excludeStepIds?: readonly string[]
+}
+
+interface CiRunnerConfig {
+  readonly steps: readonly CliConfigStep[]
+  readonly targets?: readonly CiRunnerTarget[]
+}
+```
+
+### CLI and Extension Behavior
+
+- Add CLI flag `--target <id>`.
+- Resolve target before run:
+  - `includeStepIds` limits the runnable step set.
+  - `excludeStepIds` removes steps from that set.
+  - Validation fails on unknown step ids or duplicate target ids.
+- VS Code extension:
+  - Detect targets from each config and display `target.name` as runnable node labels.
+  - Keep current per-run actions (`Run`, `Run (Watch)`, `Run (Fail Fast)`) for each target.
+  - Show config path as description/tooltip, not as the primary label.
+
+### UX Defaults
+
+- If `targets` exists, prepend an implicit `Full CI` node that runs all steps.
+- If `targets` does not exist, keep current file-based node behavior.
+- Default selected command remains configurable via `ciRunner.defaultRunProfile`.
+
+### Delivery Plan
+
+- Phase 1: CLI target schema, parser, validation, `--target` execution.
+- Phase 2: VS Code tree model upgrade from config nodes to target nodes.
+- Phase 3: Documentation and migration examples for monorepos.
+- Phase 4: Collect feedback and refine filtering model if teams need tag-based targeting.
+
 ## Execution Order
 
 - [x] Complete P0 and publish initial CLI release.
 - [ ] Implement P1 recipes and collect formatter requests from first adopters.
 - [ ] Build P2 extension MVP (overview in sidebar, details in Output Channel).
+- [ ] Implement named run targets end-to-end (CLI `--target` + VS Code target list).
 - [ ] Evaluate history/drilldown/web UI needs after real usage data.
