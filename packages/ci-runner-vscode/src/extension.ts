@@ -14,6 +14,14 @@ interface ConfigEntry {
   readonly preferred: boolean
 }
 
+interface TargetEntry {
+  readonly key: string
+  readonly config: ConfigEntry
+  readonly targetId?: string
+  readonly label: string
+  readonly description?: string
+}
+
 interface ConfigState {
   readonly status: RunStatus
   readonly profile?: RunProfile
@@ -27,19 +35,25 @@ interface RunningProcess {
   readonly runId: number
 }
 
+interface ListedTarget {
+  readonly id: string
+  readonly name: string
+  readonly description?: string
+}
+
 interface LaunchCommand {
   readonly command: string
   readonly baseArgs: readonly string[]
 }
 
-interface ConfigNode {
-  readonly type: 'config'
-  readonly entry: ConfigEntry
+interface TargetNode {
+  readonly type: 'target'
+  readonly entry: TargetEntry
 }
 
 interface ActionNode {
   readonly type: 'action'
-  readonly entry: ConfigEntry
+  readonly entry: TargetEntry
   readonly action: 'run' | 'watch' | 'fail-fast' | 'stop'
 }
 
@@ -50,23 +64,24 @@ interface MessageNode {
   readonly command?: vscode.Command
 }
 
-type TreeNode = ConfigNode | ActionNode | MessageNode
+type TreeNode = TargetNode | ActionNode | MessageNode
 
 const CONFIG_SECTION = 'ciRunner'
 const DEFAULT_CONFIG_PATH = 'defaultConfigPath'
 const DEFAULT_RUN_PROFILE = 'defaultRunProfile'
 const ANSI_ESCAPE_PATTERN = new RegExp(String.raw`\u001B\[[0-?]*[ -/]*[@-~]`, 'gu')
+const FULL_PIPELINE_LABEL = 'Full CI'
 
 class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Disposable {
   private readonly emitter = new vscode.EventEmitter<TreeNode | undefined | null | void>()
   private readonly outputChannel = vscode.window.createOutputChannel('CI Runner')
-  private readonly stateByConfig = new Map<string, ConfigState>()
-  private readonly runningByConfig = new Map<string, RunningProcess>()
+  private readonly stateByEntry = new Map<string, ConfigState>()
+  private readonly runningByEntry = new Map<string, RunningProcess>()
   private readonly terminatedRunIds = new Set<number>()
   private readonly disposables: vscode.Disposable[] = []
   private runCounter = 0
 
-  private configs: readonly ConfigEntry[] = []
+  private entries: readonly TargetEntry[] = []
 
   public readonly onDidChangeTreeData = this.emitter.event
 
@@ -102,9 +117,9 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
   }
 
   public dispose(): void {
-    for (const [configKey, running] of this.runningByConfig.entries()) {
+    for (const [entryKey, running] of this.runningByEntry.entries()) {
       running.child.kill('SIGTERM')
-      this.runningByConfig.delete(configKey)
+      this.runningByEntry.delete(entryKey)
     }
 
     for (const disposable of this.disposables) {
@@ -115,13 +130,13 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
   }
 
   public async refresh(): Promise<void> {
-    const detectedConfigs = await detectConfigs()
-    this.configs = detectedConfigs
+    const detectedEntries = await detectTargetEntries()
+    this.entries = detectedEntries
 
-    const detectedKeys = new Set(detectedConfigs.map((entry) => entry.uri.toString()))
-    for (const existingKey of this.stateByConfig.keys()) {
+    const detectedKeys = new Set(detectedEntries.map((entry) => entry.key))
+    for (const existingKey of this.stateByEntry.keys()) {
       if (!detectedKeys.has(existingKey)) {
-        this.stateByConfig.delete(existingKey)
+        this.stateByEntry.delete(existingKey)
       }
     }
 
@@ -129,8 +144,8 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
   }
 
   public getTreeItem(element: TreeNode): vscode.TreeItem {
-    if (element.type === 'config') {
-      return this.createConfigTreeItem(element.entry)
+    if (element.type === 'target') {
+      return this.createTargetTreeItem(element.entry)
     }
 
     if (element.type === 'message') {
@@ -152,7 +167,7 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
         ]
       }
 
-      if (this.configs.length === 0) {
+      if (this.entries.length === 0) {
         return [
           {
             type: 'message',
@@ -171,7 +186,7 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
         ]
       }
 
-      return this.configs.map((entry) => ({ type: 'config', entry }))
+      return this.entries.map((entry) => ({ type: 'target', entry }))
     }
 
     if (element.type === 'action' || element.type === 'message') {
@@ -184,7 +199,7 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
       { type: 'action', entry: element.entry, action: 'fail-fast' },
     ]
 
-    const state = this.stateByConfig.get(element.entry.uri.toString())
+    const state = this.stateByEntry.get(element.entry.key)
     if (state?.status === 'running') {
       actions.push({ type: 'action', entry: element.entry, action: 'stop' })
     }
@@ -192,47 +207,38 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
     return actions
   }
 
-  public async runDefaultProfile(configUri: vscode.Uri): Promise<void> {
-    const workspaceFolder = vscode.workspace.getWorkspaceFolder(configUri)
-    if (!workspaceFolder) {
-      vscode.window.showErrorMessage('CI Runner config must be inside a workspace folder.')
-      return
-    }
-
-    const profile = getDefaultRunProfile(workspaceFolder)
-    await this.runConfig(configUri, profile)
+  public async runDefaultProfile(entry: TargetEntry): Promise<void> {
+    const profile = getDefaultRunProfile(entry.config.workspaceFolder)
+    await this.runEntry(entry, profile)
   }
 
-  public async runConfig(configUri: vscode.Uri, profile: RunProfile): Promise<void> {
-    const workspaceFolder = vscode.workspace.getWorkspaceFolder(configUri)
-    if (!workspaceFolder) {
-      vscode.window.showErrorMessage('CI Runner config must be inside a workspace folder.')
-      return
-    }
-
-    const configKey = configUri.toString()
-    const relativeConfigPath = relative(workspaceFolder.uri.fsPath, configUri.fsPath)
+  public async runEntry(entry: TargetEntry, profile: RunProfile): Promise<void> {
+    const workspaceFolder = entry.config.workspaceFolder
     const launch = await resolveCliLaunch(workspaceFolder)
     const baseArgs = [
       ...launch.baseArgs,
       '--config',
-      relativeConfigPath,
+      entry.config.relativePath,
       '--cwd',
       workspaceFolder.uri.fsPath,
       '--format',
       'pretty',
     ]
+    if (entry.targetId) {
+      baseArgs.push('--target', entry.targetId)
+    }
+
     const profileArgs =
       profile === 'watch' ? ['--watch'] : profile === 'fail-fast' ? ['--fail-fast'] : []
     const args = [...baseArgs, ...profileArgs]
 
-    if (this.runningByConfig.has(configKey)) {
-      this.stopConfigInternal(configKey, 'Restarting existing run.')
+    if (this.runningByEntry.has(entry.key)) {
+      this.stopEntryInternal(entry.key, 'Restarting existing run.')
     }
 
     this.outputChannel.show(true)
     this.outputChannel.appendLine(
-      `\n[${new Date().toISOString()}] ${workspaceFolder.name}: ${relativeConfigPath} (${profile})`
+      `\n[${new Date().toISOString()}] ${workspaceFolder.name}: ${entry.config.relativePath} / ${entry.label} (${profile})`
     )
     this.outputChannel.appendLine(`$ ${formatShellCommand(launch.command, args)}`)
 
@@ -244,15 +250,15 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
 
     const runId = this.runCounter + 1
     this.runCounter = runId
-    this.runningByConfig.set(configKey, { child: childProcess, profile, runId })
-    this.setState(configKey, {
+    this.runningByEntry.set(entry.key, { child: childProcess, profile, runId })
+    this.setState(entry.key, {
       status: 'running',
       profile,
-      lastExitCode: this.stateByConfig.get(configKey)?.lastExitCode,
+      lastExitCode: this.stateByEntry.get(entry.key)?.lastExitCode,
     })
 
     childProcess.stdout.on('data', (chunk: Buffer) => {
-      if (this.runningByConfig.get(configKey)?.runId !== runId) {
+      if (this.runningByEntry.get(entry.key)?.runId !== runId) {
         return
       }
 
@@ -260,7 +266,7 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
     })
 
     childProcess.stderr.on('data', (chunk: Buffer) => {
-      if (this.runningByConfig.get(configKey)?.runId !== runId) {
+      if (this.runningByEntry.get(entry.key)?.runId !== runId) {
         return
       }
 
@@ -268,13 +274,13 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
     })
 
     childProcess.on('error', (error: Error) => {
-      if (this.runningByConfig.get(configKey)?.runId !== runId) {
+      if (this.runningByEntry.get(entry.key)?.runId !== runId) {
         return
       }
 
-      this.runningByConfig.delete(configKey)
-      const previousState = this.stateByConfig.get(configKey)
-      this.setState(configKey, {
+      this.runningByEntry.delete(entry.key)
+      const previousState = this.stateByEntry.get(entry.key)
+      this.setState(entry.key, {
         status: 'error',
         profile,
         lastExitCode: previousState?.lastExitCode,
@@ -284,16 +290,16 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
     })
 
     childProcess.on('close', (code: number | null, signal: NodeJS.Signals | null) => {
-      if (this.runningByConfig.get(configKey)?.runId !== runId) {
+      if (this.runningByEntry.get(entry.key)?.runId !== runId) {
         return
       }
 
-      this.runningByConfig.delete(configKey)
+      this.runningByEntry.delete(entry.key)
 
-      const previousState = this.stateByConfig.get(configKey)
+      const previousState = this.stateByEntry.get(entry.key)
       if (this.terminatedRunIds.has(runId)) {
         this.terminatedRunIds.delete(runId)
-        this.setState(configKey, {
+        this.setState(entry.key, {
           status: 'stopped',
           profile,
           lastExitCode: previousState?.lastExitCode,
@@ -302,7 +308,7 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
       }
 
       if (code === 0 || code === 1) {
-        this.setState(configKey, {
+        this.setState(entry.key, {
           status: code === 0 ? 'passed' : 'failed',
           profile,
           lastExitCode: code,
@@ -311,7 +317,7 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
       }
 
       const signalSuffix = signal ? ` (signal: ${signal})` : ''
-      this.setState(configKey, {
+      this.setState(entry.key, {
         status: 'error',
         profile,
         lastExitCode: previousState?.lastExitCode,
@@ -320,14 +326,14 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
     })
   }
 
-  public stopConfig(configUri: vscode.Uri): void {
-    this.stopConfigInternal(configUri.toString(), 'Run stopped by user.')
+  public stopEntry(entry: TargetEntry): void {
+    this.stopEntryInternal(entry.key, 'Run stopped by user.')
   }
 
   public stopAllRuns(): void {
-    const runningConfigKeys = [...this.runningByConfig.keys()]
-    for (const configKey of runningConfigKeys) {
-      this.stopConfigInternal(configKey, 'Run stopped by user (Stop All).')
+    const runningEntryKeys = [...this.runningByEntry.keys()]
+    for (const entryKey of runningEntryKeys) {
+      this.stopEntryInternal(entryKey, 'Run stopped by user (Stop All).')
     }
   }
 
@@ -335,8 +341,8 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
     this.outputChannel.show(true)
   }
 
-  private stopConfigInternal(configKey: string, reason: string): void {
-    const running = this.runningByConfig.get(configKey)
+  private stopEntryInternal(entryKey: string, reason: string): void {
+    const running = this.runningByEntry.get(entryKey)
     if (!running) {
       return
     }
@@ -347,26 +353,29 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
   }
 
   private setState(configKey: string, state: ConfigState): void {
-    this.stateByConfig.set(configKey, state)
+    this.stateByEntry.set(configKey, state)
     this.emitter.fire(undefined)
   }
 
-  private createConfigTreeItem(entry: ConfigEntry): vscode.TreeItem {
-    const configKey = entry.uri.toString()
-    const state = this.stateByConfig.get(configKey)
+  private createTargetTreeItem(entry: TargetEntry): vscode.TreeItem {
+    const state = this.stateByEntry.get(entry.key)
     const treeItem = new vscode.TreeItem(
-      `${selectStatusEmoji(state)} ${entry.relativePath}`,
+      `${selectStatusEmoji(state)} ${entry.label}`,
       vscode.TreeItemCollapsibleState.Collapsed
     )
 
-    treeItem.description = formatConfigDescription(state, entry.preferred)
-    treeItem.tooltip = `${entry.workspaceFolder.name}: ${entry.relativePath}`
+    treeItem.description = formatTargetDescription(state, entry)
+    const tooltipParts = [`${entry.config.workspaceFolder.name}: ${entry.config.relativePath}`]
+    if (entry.description) {
+      tooltipParts.push(entry.description)
+    }
+    treeItem.tooltip = tooltipParts.join('\n')
     treeItem.command = {
       command: 'vscode.open',
       title: 'Open Config',
-      arguments: [entry.uri],
+      arguments: [entry.config.uri],
     }
-    treeItem.contextValue = 'ciRunner.config'
+    treeItem.contextValue = 'ciRunner.target'
     treeItem.iconPath = selectConfigIcon(state)
 
     return treeItem
@@ -409,11 +418,60 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
     treeItem.command = {
       command: commandByAction[node.action],
       title: labels[node.action],
-      arguments: [node.entry.uri],
+      arguments: [node.entry],
     }
     treeItem.contextValue = `ciRunner.action.${node.action}`
 
     return treeItem
+  }
+}
+
+const detectTargetEntries = async (): Promise<readonly TargetEntry[]> => {
+  const configEntries = await detectConfigs()
+  const targetGroups = await Promise.all(
+    configEntries.map((entry) => detectTargetsForConfig(entry))
+  )
+  return targetGroups.flat()
+}
+
+const detectTargetsForConfig = async (
+  configEntry: ConfigEntry
+): Promise<readonly TargetEntry[]> => {
+  let listedTargets: readonly ListedTarget[] = []
+  try {
+    listedTargets = await listTargetsForConfig(configEntry)
+  } catch {
+    return [toTargetEntry(configEntry, undefined, configEntry.relativePath, undefined)]
+  }
+
+  if (listedTargets.length === 0) {
+    return [toTargetEntry(configEntry, undefined, configEntry.relativePath, undefined)]
+  }
+
+  const entries: TargetEntry[] = [
+    toTargetEntry(configEntry, undefined, FULL_PIPELINE_LABEL, 'Run all configured steps'),
+  ]
+
+  for (const target of listedTargets) {
+    entries.push(toTargetEntry(configEntry, target.id, target.name, target.description))
+  }
+
+  return entries
+}
+
+const toTargetEntry = (
+  config: ConfigEntry,
+  targetId: string | undefined,
+  label: string,
+  description: string | undefined
+): TargetEntry => {
+  const targetSuffix = targetId ? `target:${targetId}` : 'target:full'
+  return {
+    key: `${config.uri.toString()}::${targetSuffix}`,
+    config,
+    targetId,
+    label,
+    description,
   }
 }
 
@@ -480,6 +538,117 @@ const detectConfigs = async (): Promise<readonly ConfigEntry[]> => {
   })
 
   return entries
+}
+
+const listTargetsForConfig = async (entry: ConfigEntry): Promise<readonly ListedTarget[]> => {
+  const launch = await resolveCliLaunch(entry.workspaceFolder)
+  const args = [
+    ...launch.baseArgs,
+    '--config',
+    entry.relativePath,
+    '--cwd',
+    entry.workspaceFolder.uri.fsPath,
+    '--list-targets',
+    '--format',
+    'json',
+  ]
+
+  const payload = await runCliJsonCommand(launch.command, args, entry.workspaceFolder.uri.fsPath)
+  return parseListedTargetsPayload(payload)
+}
+
+const runCliJsonCommand = async (
+  command: string,
+  args: readonly string[],
+  cwd: string
+): Promise<unknown> => {
+  return await new Promise<unknown>((resolvePromise, rejectPromise) => {
+    const childProcess = spawn(command, [...args], {
+      cwd,
+      env: processEnv(),
+      stdio: 'pipe',
+    })
+
+    let stdout = ''
+    let stderr = ''
+
+    childProcess.stdout.on('data', (chunk: Buffer) => {
+      stdout += stripAnsi(chunk.toString())
+    })
+
+    childProcess.stderr.on('data', (chunk: Buffer) => {
+      stderr += stripAnsi(chunk.toString())
+    })
+
+    childProcess.on('error', (error: Error) => {
+      rejectPromise(error)
+    })
+
+    childProcess.on('close', (code: number | null) => {
+      if (code !== 0) {
+        const errorText = stderr.trim()
+        rejectPromise(
+          new Error(errorText.length > 0 ? errorText : `Command exited with code ${code}`)
+        )
+        return
+      }
+
+      const trimmedStdout = stdout.trim()
+      if (trimmedStdout.length === 0) {
+        rejectPromise(new Error('Command returned empty output'))
+        return
+      }
+
+      try {
+        resolvePromise(JSON.parse(trimmedStdout) as unknown)
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error)
+        rejectPromise(new Error(`Failed to parse JSON output: ${message}`))
+      }
+    })
+  })
+}
+
+const parseListedTargetsPayload = (value: unknown): readonly ListedTarget[] => {
+  if (!isRecord(value)) {
+    throw new Error('Target list response must be an object')
+  }
+
+  const targetsValue = value.targets
+  if (!Array.isArray(targetsValue)) {
+    throw new Error('Target list response must include a targets array')
+  }
+
+  const targets: ListedTarget[] = []
+  for (const [index, targetValue] of targetsValue.entries()) {
+    if (!isRecord(targetValue)) {
+      throw new Error(`targets[${index}] must be an object`)
+    }
+
+    const id = targetValue.id
+    const name = targetValue.name
+    const description = targetValue.description
+
+    if (typeof id !== 'string' || id.length === 0) {
+      throw new Error(`targets[${index}].id must be a non-empty string`)
+    }
+
+    if (typeof name !== 'string' || name.length === 0) {
+      throw new Error(`targets[${index}].name must be a non-empty string`)
+    }
+
+    if (description !== undefined && typeof description !== 'string') {
+      throw new Error(`targets[${index}].description must be a string`)
+    }
+
+    targets.push({
+      id,
+      name,
+      description,
+    })
+  }
+
+  return targets
 }
 
 const fileExists = async (filePath: string): Promise<boolean> => {
@@ -555,34 +724,36 @@ const processEnv = (): NodeJS.ProcessEnv => {
   return env
 }
 
-const formatConfigDescription = (state: ConfigState | undefined, preferred: boolean): string => {
-  const preferredPrefix = preferred ? 'default' : ''
+const formatTargetDescription = (state: ConfigState | undefined, entry: TargetEntry): string => {
+  const preferredPrefix = entry.config.preferred ? 'default' : ''
+  const configPathPart = entry.label === entry.config.relativePath ? '' : entry.config.relativePath
+
   if (!state) {
-    return joinDescription(preferredPrefix, 'no run yet')
+    return joinDescription(preferredPrefix, 'no run yet', configPathPart)
   }
 
   if (state.status === 'running') {
     const runningSuffix = state.profile === 'watch' ? 'watching' : 'running'
-    return joinDescription(preferredPrefix, runningSuffix)
+    return joinDescription(preferredPrefix, runningSuffix, configPathPart)
   }
 
   if (state.status === 'passed') {
-    return joinDescription(preferredPrefix, 'passed')
+    return joinDescription(preferredPrefix, 'passed', configPathPart)
   }
 
   if (state.status === 'failed') {
-    return joinDescription(preferredPrefix, 'failed')
+    return joinDescription(preferredPrefix, 'failed', configPathPart)
   }
 
   if (state.status === 'stopped') {
-    return joinDescription(preferredPrefix, 'stopped')
+    return joinDescription(preferredPrefix, 'stopped', configPathPart)
   }
 
   if (state.status === 'error') {
-    return joinDescription(preferredPrefix, 'error', state.errorMessage ?? '')
+    return joinDescription(preferredPrefix, 'error', configPathPart, state.errorMessage ?? '')
   }
 
-  return preferredPrefix
+  return joinDescription(preferredPrefix, configPathPart)
 }
 
 const joinDescription = (...parts: readonly string[]): string => {
@@ -637,6 +808,10 @@ const stripAnsi = (text: string): string => {
   return text.replaceAll(ANSI_ESCAPE_PATTERN, '')
 }
 
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
 const normalizePathKey = (filePath: string): string => {
   return process.platform === 'win32' ? filePath.toLowerCase() : filePath
 }
@@ -667,20 +842,20 @@ export const activate = async (context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('ciRunner.refresh', async () => {
       await model.refresh()
     }),
-    vscode.commands.registerCommand('ciRunner.runConfig', async (configUri: vscode.Uri) => {
-      await model.runConfig(configUri, 'standard')
+    vscode.commands.registerCommand('ciRunner.runConfig', async (entry: TargetEntry) => {
+      await model.runEntry(entry, 'standard')
     }),
-    vscode.commands.registerCommand('ciRunner.runConfigWatch', async (configUri: vscode.Uri) => {
-      await model.runConfig(configUri, 'watch')
+    vscode.commands.registerCommand('ciRunner.runConfigWatch', async (entry: TargetEntry) => {
+      await model.runEntry(entry, 'watch')
     }),
-    vscode.commands.registerCommand('ciRunner.runConfigFailFast', async (configUri: vscode.Uri) => {
-      await model.runConfig(configUri, 'fail-fast')
+    vscode.commands.registerCommand('ciRunner.runConfigFailFast', async (entry: TargetEntry) => {
+      await model.runEntry(entry, 'fail-fast')
     }),
-    vscode.commands.registerCommand('ciRunner.runConfigDefault', async (configUri: vscode.Uri) => {
-      await model.runDefaultProfile(configUri)
+    vscode.commands.registerCommand('ciRunner.runConfigDefault', async (entry: TargetEntry) => {
+      await model.runDefaultProfile(entry)
     }),
-    vscode.commands.registerCommand('ciRunner.stopConfig', (configUri: vscode.Uri) => {
-      model.stopConfig(configUri)
+    vscode.commands.registerCommand('ciRunner.stopConfig', (entry: TargetEntry) => {
+      model.stopEntry(entry)
     }),
     vscode.commands.registerCommand('ciRunner.stopAll', () => {
       model.stopAllRuns()
