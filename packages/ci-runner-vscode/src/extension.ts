@@ -1,6 +1,6 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { access, constants } from 'node:fs/promises'
-import { join, relative } from 'node:path'
+import { join, relative, resolve } from 'node:path'
 
 import * as vscode from 'vscode'
 
@@ -272,7 +272,11 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
 
       for (const line of drained.lines) {
         const cleanLine = stripAnsi(line)
-        this.outputChannel.appendLine(cleanLine)
+        appendEnhancedOutputLine(
+          this.outputChannel,
+          cleanLine,
+          entry.config.workspaceFolder.uri.fsPath
+        )
 
         if (profile !== 'watch') {
           continue
@@ -302,7 +306,11 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
       const drained = drainCompleteLines(stderrBuffer)
       stderrBuffer = drained.remainder
       for (const line of drained.lines) {
-        this.outputChannel.appendLine(stripAnsi(line))
+        appendEnhancedOutputLine(
+          this.outputChannel,
+          stripAnsi(line),
+          entry.config.workspaceFolder.uri.fsPath
+        )
       }
     })
 
@@ -924,12 +932,90 @@ const drainCompleteLines = (
 }
 
 const flushRemainingOutputBuffer = (outputChannel: vscode.OutputChannel, buffer: string): void => {
-  const clean = stripAnsi(buffer).trim()
-  if (clean.length === 0) {
+  const clean = stripAnsi(buffer)
+  if (clean.trim().length === 0) {
     return
   }
 
-  outputChannel.appendLine(clean)
+  appendEnhancedOutputLine(outputChannel, clean, '')
+}
+
+const appendEnhancedOutputLine = (
+  outputChannel: vscode.OutputChannel,
+  line: string,
+  workspaceRootPath: string
+): void => {
+  if (shouldSuppressOutputLine(line)) {
+    return
+  }
+
+  outputChannel.appendLine(line)
+
+  const clickableDiagnostic = toClickableTypeScriptDiagnostic(line, workspaceRootPath)
+  if (!clickableDiagnostic) {
+    return
+  }
+
+  outputChannel.appendLine(clickableDiagnostic)
+}
+
+const shouldSuppressOutputLine = (line: string): boolean => {
+  const normalized = line.trim()
+  if (
+    normalized.startsWith('(node:') &&
+    normalized.includes("The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.")
+  ) {
+    return true
+  }
+
+  if (normalized.startsWith('(Use `node --trace-warnings')) {
+    return true
+  }
+
+  return false
+}
+
+const toClickableTypeScriptDiagnostic = (
+  line: string,
+  workspaceRootPath: string
+): string | null => {
+  const recursiveMatch = line.match(
+    /^(?<packagePath>\S+)\s+\S+:\s+(?<filePath>.+)\((?<line>\d+),(?<column>\d+)\):\s+(?<message>error TS\d+:.*)$/u
+  )
+  if (recursiveMatch?.groups) {
+    const filePath = resolve(
+      workspaceRootPath,
+      recursiveMatch.groups.packagePath,
+      recursiveMatch.groups.filePath
+    )
+    const lineNumber = Number.parseInt(recursiveMatch.groups.line, 10)
+    const columnNumber = Number.parseInt(recursiveMatch.groups.column, 10)
+    const message = recursiveMatch.groups.message
+    if (Number.isNaN(lineNumber) || Number.isNaN(columnNumber)) {
+      return null
+    }
+
+    return `${filePath}:${lineNumber}:${columnNumber} - ${message}`
+  }
+
+  const directMatch = line.match(
+    /^(?<filePath>.+)\((?<line>\d+),(?<column>\d+)\):\s+(?<message>error TS\d+:.*)$/u
+  )
+  if (!directMatch?.groups) {
+    return null
+  }
+
+  const filePath = workspaceRootPath
+    ? resolve(workspaceRootPath, directMatch.groups.filePath)
+    : directMatch.groups.filePath
+  const lineNumber = Number.parseInt(directMatch.groups.line, 10)
+  const columnNumber = Number.parseInt(directMatch.groups.column, 10)
+  const message = directMatch.groups.message
+  if (Number.isNaN(lineNumber) || Number.isNaN(columnNumber)) {
+    return null
+  }
+
+  return `${filePath}:${lineNumber}:${columnNumber} - ${message}`
 }
 
 const stripAnsi = (text: string): string => {
