@@ -5,7 +5,7 @@
   "description": "VS Code extension for ci-runner CLI.",
   "displayName": "CI Runner",
   "publisher": "number10",
-  "icon": "media/ci-runner.svg",
+  "icon": "media/ci-runner.png",
   "main": "./dist/extension.js",
   "engines": {
     "vscode": "^1.90.0",
@@ -15,30 +15,23 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [
-    "onView:ciRunner.sidebar",
-    "onCommand:ciRunner.refresh",
-    "onCommand:ciRunner.runConfig",
-    "onCommand:ciRunner.runConfigWatch",
-    "onCommand:ciRunner.runConfigFailFast",
-    "onCommand:ciRunner.runConfigDefault",
-    "onCommand:ciRunner.stopConfig",
-    "onCommand:ciRunner.stopAll",
-    "onCommand:ciRunner.openOutput"
-  ],
   "contributes": {
     "views": {
       "explorer": [
         {
           "id": "ciRunner.sidebar",
-          "name": "CI Runner"
+          "name": "CI Runner",
+          "icon": "media/ci-runner.png"
         }
       ]
     },
     "commands": [
       {
         "command": "ciRunner.refresh",
-        "title": "Refresh"
+        "title": "Refresh",
+        "icon": {
+          "id": "refresh"
+        }
       },
       {
         "command": "ciRunner.runConfig",
@@ -68,11 +61,17 @@
       },
       {
         "command": "ciRunner.stopAll",
-        "title": "Stop All Runs"
+        "title": "Stop All Runs",
+        "icon": {
+          "id": "debug-stop"
+        }
       },
       {
         "command": "ciRunner.openOutput",
-        "title": "Open Output"
+        "title": "Open Output",
+        "icon": {
+          "id": "output"
+        }
       }
     ],
     "menus": {
