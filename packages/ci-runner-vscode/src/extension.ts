@@ -4,6 +4,9 @@ import { join, relative } from 'node:path'
 
 import * as vscode from 'vscode'
 
+import { JsonObjectStreamParser } from './jsonObjectStreamParser.js'
+import { parsePipelineRunResult } from './pipelineResult.js'
+
 type RunProfile = 'standard' | 'watch' | 'fail-fast'
 type RunStatus = 'idle' | 'running' | 'passed' | 'failed' | 'stopped' | 'error'
 
@@ -215,6 +218,7 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
   public async runEntry(entry: TargetEntry, profile: RunProfile): Promise<void> {
     const workspaceFolder = entry.config.workspaceFolder
     const launch = await resolveCliLaunch(workspaceFolder)
+    const outputFormat = profile === 'watch' ? 'json' : 'pretty'
     const baseArgs = [
       ...launch.baseArgs,
       '--config',
@@ -222,7 +226,7 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
       '--cwd',
       workspaceFolder.uri.fsPath,
       '--format',
-      'pretty',
+      outputFormat,
     ]
     if (entry.targetId) {
       baseArgs.push('--target', entry.targetId)
@@ -238,7 +242,7 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
 
     this.outputChannel.show(true)
     this.outputChannel.appendLine(
-      `\n[${new Date().toISOString()}] ${workspaceFolder.name}: ${entry.config.relativePath} / ${entry.label} (${profile})`
+      `\n[${new Date().toISOString()}] ${workspaceFolder.name}: ${entry.config.relativePath} / ${entry.label} (${profile}, format=${outputFormat})`
     )
     this.outputChannel.appendLine(`$ ${formatShellCommand(launch.command, args)}`)
 
@@ -250,6 +254,7 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
 
     const runId = this.runCounter + 1
     this.runCounter = runId
+    const jsonParser = profile === 'watch' ? new JsonObjectStreamParser() : null
     this.runningByEntry.set(entry.key, { child: childProcess, profile, runId })
     this.setState(entry.key, {
       status: 'running',
@@ -262,7 +267,28 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
         return
       }
 
-      this.outputChannel.append(stripAnsi(chunk.toString()))
+      const output = stripAnsi(chunk.toString())
+      this.outputChannel.append(output)
+
+      if (!jsonParser) {
+        return
+      }
+
+      const parsedObjects = jsonParser.feed(output)
+      for (const parsedObject of parsedObjects) {
+        const runResult = parsePipelineRunResult(parsedObject)
+        if (!runResult) {
+          continue
+        }
+
+        const currentState = this.stateByEntry.get(entry.key)
+        this.setState(entry.key, {
+          status: 'running',
+          profile,
+          lastExitCode: runResult.exitCode,
+          errorMessage: currentState?.errorMessage,
+        })
+      }
     })
 
     childProcess.stderr.on('data', (chunk: Buffer) => {
