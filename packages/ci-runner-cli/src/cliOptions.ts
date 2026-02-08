@@ -16,6 +16,8 @@ export interface CliOptions {
   readonly listTargets: boolean
   /** Selected output format. */
   readonly format: CliOutputFormat
+  /** Indicates whether output format was explicitly set via CLI flag. */
+  readonly formatProvided?: true
   /** Emits full output for successful steps when true. */
   readonly verbose: boolean
   /** Enables rerun mode on file changes when true. */
@@ -39,6 +41,7 @@ export const parseCliOptions = (argv: readonly string[], baseCwd: string): CliOp
   let target: string | undefined
   let listTargets = false
   let format: CliOutputFormat = 'pretty'
+  let formatProvided = false
   let verbose = false
   let watch = false
   let failFast = false
@@ -85,6 +88,7 @@ export const parseCliOptions = (argv: readonly string[], baseCwd: string): CliOp
         throw new Error('--format must be "pretty" or "json"')
       }
       format = nextValue
+      formatProvided = true
       index += 1
       continue
     }
@@ -95,6 +99,7 @@ export const parseCliOptions = (argv: readonly string[], baseCwd: string): CliOp
         throw new Error('--format must be "pretty" or "json"')
       }
       format = value
+      formatProvided = true
       continue
     }
 
@@ -152,6 +157,7 @@ export const parseCliOptions = (argv: readonly string[], baseCwd: string): CliOp
     target,
     listTargets,
     format,
+    ...(formatProvided ? { formatProvided: true as const } : {}),
     verbose,
     watch,
     failFast,

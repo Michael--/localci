@@ -28,6 +28,7 @@ describe('parseCliOptions', () => {
       target: 'lint',
       listTargets: false,
       format: 'json',
+      formatProvided: true,
       verbose: true,
       watch: true,
       failFast: true,
@@ -45,6 +46,7 @@ describe('parseCliOptions', () => {
     expect(options.configPath).toBe('ci.config.json')
     expect(options.target).toBe('smoke')
     expect(options.format).toBe('pretty')
+    expect(options.formatProvided).toBe(true)
   })
 
   it('returns help mode', () => {

@@ -30,6 +30,8 @@ export interface RunCliPipelineOptions {
   readonly listTargets: boolean
   /** Output format selection. */
   readonly format: CliOutputFormat
+  /** Indicates whether output format was explicitly set via CLI flag. */
+  readonly formatProvided?: true
   /** Verbose output mode. */
   readonly verbose: boolean
   /** Enables fail-fast behavior. */
@@ -57,7 +59,10 @@ export const runCliPipeline = async (options: RunCliPipelineOptions): Promise<nu
     return 0
   }
 
-  const effectiveFormat = loadedConfig.config.output?.format ?? options.format
+  const effectiveFormat =
+    options.formatProvided === true
+      ? options.format
+      : (loadedConfig.config.output?.format ?? options.format)
   const effectiveVerbose = loadedConfig.config.output?.verbose ?? options.verbose
 
   const execute = async (): Promise<PipelineRunResult> => {
