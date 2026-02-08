@@ -4,9 +4,6 @@ import { join, relative } from 'node:path'
 
 import * as vscode from 'vscode'
 
-import { JsonObjectStreamParser } from './jsonObjectStreamParser.js'
-import { parsePipelineRunResult } from './pipelineResult.js'
-
 type RunProfile = 'standard' | 'watch' | 'fail-fast'
 type RunStatus = 'idle' | 'running' | 'passed' | 'failed' | 'stopped' | 'error'
 
@@ -218,7 +215,7 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
   public async runEntry(entry: TargetEntry, profile: RunProfile): Promise<void> {
     const workspaceFolder = entry.config.workspaceFolder
     const launch = await resolveCliLaunch(workspaceFolder)
-    const outputFormat = profile === 'watch' ? 'json' : 'pretty'
+    const outputFormat = 'pretty'
     const baseArgs = [
       ...launch.baseArgs,
       '--config',
@@ -254,7 +251,7 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
 
     const runId = this.runCounter + 1
     this.runCounter = runId
-    const jsonParser = profile === 'watch' ? new JsonObjectStreamParser() : null
+    let watchLineBuffer = ''
     this.runningByEntry.set(entry.key, { child: childProcess, profile, runId })
     this.setState(entry.key, {
       status: 'running',
@@ -270,22 +267,23 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
       const output = stripAnsi(chunk.toString())
       this.outputChannel.append(output)
 
-      if (!jsonParser) {
+      if (profile !== 'watch') {
         return
       }
 
-      const parsedObjects = jsonParser.feed(output)
-      for (const parsedObject of parsedObjects) {
-        const runResult = parsePipelineRunResult(parsedObject)
-        if (!runResult) {
+      watchLineBuffer += output
+      const lines = watchLineBuffer.split(/\r?\n/u)
+      watchLineBuffer = lines.pop() ?? ''
+      for (const line of lines) {
+        const runExitCode = parseWatchRunExitCodeFromLine(line)
+        if (runExitCode === null) {
           continue
         }
-
         const currentState = this.stateByEntry.get(entry.key)
         this.setState(entry.key, {
           status: 'running',
           profile,
-          lastExitCode: runResult.exitCode,
+          lastExitCode: runExitCode,
           errorMessage: currentState?.errorMessage,
         })
       }
@@ -857,6 +855,23 @@ const formatLastRunDescription = (lastExitCode?: 0 | 1): string => {
   }
 
   return ''
+}
+
+const parseWatchRunExitCodeFromLine = (line: string): 0 | 1 | null => {
+  const normalizedLine = line.trim()
+  if (!normalizedLine.startsWith('Result:')) {
+    return null
+  }
+
+  if (normalizedLine.includes('PASS')) {
+    return 0
+  }
+
+  if (normalizedLine.includes('FAIL')) {
+    return 1
+  }
+
+  return null
 }
 
 const stripAnsi = (text: string): string => {
