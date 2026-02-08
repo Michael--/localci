@@ -1,0 +1,106 @@
+{
+  "name": "@number10/ci-runner-vscode",
+  "version": "0.1.0",
+  "private": true,
+  "description": "VS Code extension for ci-runner CLI.",
+  "displayName": "CI Runner",
+  "publisher": "number10",
+  "icon": "media/ci-runner.svg",
+  "main": "./dist/extension.js",
+  "engines": {
+    "vscode": "^1.90.0",
+    "node": ">=20.19.0",
+    "pnpm": ">=10.28.1"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onView:ciRunner.sidebar",
+    "onCommand:ciRunner.refresh",
+    "onCommand:ciRunner.runConfig",
+    "onCommand:ciRunner.runConfigWatch",
+    "onCommand:ciRunner.runConfigFailFast",
+    "onCommand:ciRunner.runConfigDefault",
+    "onCommand:ciRunner.stopWatch",
+    "onCommand:ciRunner.openOutput"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "ciRunner",
+          "title": "CI Runner",
+          "icon": "media/ci-runner.svg"
+        }
+      ]
+    },
+    "views": {
+      "ciRunner": [
+        {
+          "id": "ciRunner.sidebar",
+          "name": "CI Runner"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "ciRunner.refresh",
+        "title": "CI Runner: Refresh"
+      },
+      {
+        "command": "ciRunner.runConfig",
+        "title": "CI Runner: Run Config"
+      },
+      {
+        "command": "ciRunner.runConfigWatch",
+        "title": "CI Runner: Run Config (Watch)"
+      },
+      {
+        "command": "ciRunner.runConfigFailFast",
+        "title": "CI Runner: Run Config (Fail Fast)"
+      },
+      {
+        "command": "ciRunner.runConfigDefault",
+        "title": "CI Runner: Run Config (Default Profile)"
+      },
+      {
+        "command": "ciRunner.stopWatch",
+        "title": "CI Runner: Stop Watch"
+      },
+      {
+        "command": "ciRunner.openOutput",
+        "title": "CI Runner: Open Output"
+      }
+    ],
+    "configuration": {
+      "title": "CI Runner",
+      "properties": {
+        "ciRunner.defaultConfigPath": {
+          "type": "string",
+          "default": "",
+          "scope": "resource",
+          "description": "Preferred relative config path in the workspace. When set, this config is listed first."
+        },
+        "ciRunner.defaultRunProfile": {
+          "type": "string",
+          "default": "standard",
+          "enum": [
+            "standard",
+            "watch",
+            "fail-fast"
+          ],
+          "scope": "resource",
+          "description": "Run profile used when selecting a config node directly."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "build": "vite build --config vite.config.ts && tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint \"src/**/*.ts\" \"test/**/*.ts\"",
+    "test": "vitest run --config vitest.config.ts"
+  }
+}

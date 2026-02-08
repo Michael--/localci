@@ -75,6 +75,8 @@ importers:
         specifier: workspace:*
         version: link:../ci-runner-cli
 
+  packages/ci-runner-vscode: {}
+
 packages:
 
   '@babel/code-frame@7.29.0':

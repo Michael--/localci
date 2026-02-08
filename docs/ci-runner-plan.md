@@ -38,13 +38,13 @@
 
 ### P2: VS Code extension (Activity Bar first)
 
-- [ ] Create `ci-runner-vscode` extension skeleton.
-- [ ] Add Activity Bar view with detected configs and runnable entries.
-- [ ] Add actions: run selected config, run with `--watch`, run with `--fail-fast`.
-- [ ] Route detailed run output to VS Code Output Channel.
-- [ ] Keep sidebar focused on overview/state (configs, last status, quick actions).
-- [ ] Parse CLI `--format json` for structured status badges and summary counts.
-- [ ] Add workspace settings for default config path and default run profile.
+- [x] Create `ci-runner-vscode` extension skeleton.
+- [x] Add Activity Bar view with detected configs and runnable entries.
+- [x] Add actions: run selected config, run with `--watch`, run with `--fail-fast`.
+- [x] Route detailed run output to VS Code Output Channel.
+- [x] Keep sidebar focused on overview/state (configs, last status, quick actions).
+- [x] Parse CLI `--format json` for structured status badges and summary counts.
+- [x] Add workspace settings for default config path and default run profile.
 
 ### P3: Deferred UX expansions
 
