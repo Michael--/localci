@@ -11,7 +11,7 @@ import {
 
 import { mapConfigToRun, type ExcludedPipelineStep } from './config/mapConfigToRun.js'
 import { loadCiRunnerConfig } from './config/loadConfig.js'
-import type { CliOutputFormat } from './config/types.js'
+import type { CiRunnerTarget, CliOutputFormat } from './config/types.js'
 import { createDefaultStepParsers } from './parsers/defaultStepParsers.js'
 import { PrettyReporter } from './reporters/prettyReporter.js'
 import { createWatchIgnoreMatcher, normalizeWatchPath } from './watch/watchIgnoreMatcher.js'
@@ -26,6 +26,8 @@ export interface RunCliPipelineOptions {
   readonly configPath?: string
   /** Optional selected target id from config. */
   readonly target?: string
+  /** Prints configured targets and exits when true. */
+  readonly listTargets: boolean
   /** Output format selection. */
   readonly format: CliOutputFormat
   /** Verbose output mode. */
@@ -50,6 +52,11 @@ interface WatchController {
  */
 export const runCliPipeline = async (options: RunCliPipelineOptions): Promise<number> => {
   const loadedConfig = await loadCiRunnerConfig(options.cwd, options.configPath)
+  if (options.listTargets) {
+    printConfiguredTargets(loadedConfig.config.targets ?? [], options.format)
+    return 0
+  }
+
   const effectiveFormat = loadedConfig.config.output?.format ?? options.format
   const effectiveVerbose = loadedConfig.config.output?.verbose ?? options.verbose
 
@@ -113,6 +120,34 @@ const printExcludedStepHints = (
     }
 
     process.stdout.write(`ℹ️  Skipping ${step.name}\n`)
+  }
+}
+
+const printConfiguredTargets = (
+  targets: readonly CiRunnerTarget[],
+  format: CliOutputFormat
+): void => {
+  if (format === 'json') {
+    const payload = {
+      targets: targets.map((target) => ({
+        id: target.id,
+        name: target.name,
+        description: target.description,
+      })),
+    }
+    process.stdout.write(`${JSON.stringify(payload)}\n`)
+    return
+  }
+
+  if (targets.length === 0) {
+    process.stdout.write('No targets configured.\n')
+    return
+  }
+
+  process.stdout.write('Configured targets:\n')
+  for (const target of targets) {
+    const suffix = target.description ? ` - ${target.description}` : ''
+    process.stdout.write(`- ${target.id}: ${target.name}${suffix}\n`)
   }
 }
 

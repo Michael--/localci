@@ -26,6 +26,7 @@ describe('parseCliOptions', () => {
       cwd: baseCwd,
       configPath: 'ci.config.ts',
       target: 'lint',
+      listTargets: false,
       format: 'json',
       verbose: true,
       watch: true,
@@ -50,7 +51,14 @@ describe('parseCliOptions', () => {
     const options = parseCliOptions(['--help'], baseCwd)
 
     expect(options.help).toBe(true)
+    expect(options.listTargets).toBe(false)
     expect(getCliHelpText()).toContain('Usage: ci-runner')
+  })
+
+  it('enables target listing mode', () => {
+    const options = parseCliOptions(['--list-targets'], baseCwd)
+
+    expect(options.listTargets).toBe(true)
   })
 
   it('throws for unknown options', () => {
