@@ -32,9 +32,9 @@
 
 ### P1: Adoption and CI ecosystem
 
-- [ ] Add optional `junit` formatter output.
-- [ ] Add optional GitHub Actions summary formatter.
 - [ ] Publish a short "recipes" doc for common pipelines (lint/test/build/e2e).
+- [ ] Collect adopter requests for additional formatter targets.
+- [ ] Re-evaluate formatter backlog (`junit`, GitHub Actions summary) only when demand is proven.
 
 ### P2: VS Code extension (Activity Bar first)
 
@@ -65,7 +65,7 @@ No protocol or backend service is required for v1 of the extension.
 
 ## Execution Order
 
-- [ ] Complete P0 and publish initial CLI release.
-- [ ] Implement P1 formatters and docs based on first adopter feedback.
+- [x] Complete P0 and publish initial CLI release.
+- [ ] Implement P1 recipes and collect formatter requests from first adopters.
 - [ ] Build P2 extension MVP (overview in sidebar, details in Output Channel).
 - [ ] Evaluate history/drilldown/web UI needs after real usage data.
