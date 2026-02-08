@@ -734,7 +734,12 @@ const formatTargetDescription = (state: ConfigState | undefined, entry: TargetEn
 
   if (state.status === 'running') {
     const runningSuffix = state.profile === 'watch' ? 'watching' : 'running'
-    return joinDescription(preferredPrefix, runningSuffix, configPathPart)
+    return joinDescription(
+      preferredPrefix,
+      runningSuffix,
+      formatLastRunDescription(state.lastExitCode),
+      configPathPart
+    )
   }
 
   if (state.status === 'passed') {
@@ -785,7 +790,19 @@ const selectConfigIcon = (state: ConfigState | undefined): vscode.ThemeIcon => {
 }
 
 const selectStatusEmoji = (state: ConfigState | undefined): string => {
-  if (!state || state.status === 'idle' || state.status === 'running') {
+  if (!state || state.status === 'idle') {
+    return '🤷'
+  }
+
+  if (state.status === 'running') {
+    if (state.lastExitCode === 0) {
+      return '✅'
+    }
+
+    if (state.lastExitCode === 1) {
+      return '❌'
+    }
+
     return '🤷'
   }
 
@@ -802,6 +819,18 @@ const selectStatusEmoji = (state: ConfigState | undefined): string => {
   }
 
   return '❗'
+}
+
+const formatLastRunDescription = (lastExitCode?: 0 | 1): string => {
+  if (lastExitCode === 0) {
+    return 'last passed'
+  }
+
+  if (lastExitCode === 1) {
+    return 'last failed'
+  }
+
+  return ''
 }
 
 const stripAnsi = (text: string): string => {
