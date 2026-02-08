@@ -55,6 +55,7 @@ type TreeNode = ConfigNode | ActionNode | MessageNode
 const CONFIG_SECTION = 'ciRunner'
 const DEFAULT_CONFIG_PATH = 'defaultConfigPath'
 const DEFAULT_RUN_PROFILE = 'defaultRunProfile'
+const ANSI_ESCAPE_PATTERN = new RegExp(String.raw`\u001B\[[0-?]*[ -/]*[@-~]`, 'gu')
 
 class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Disposable {
   private readonly emitter = new vscode.EventEmitter<TreeNode | undefined | null | void>()
@@ -255,7 +256,7 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
         return
       }
 
-      this.outputChannel.append(chunk.toString())
+      this.outputChannel.append(stripAnsi(chunk.toString()))
     })
 
     childProcess.stderr.on('data', (chunk: Buffer) => {
@@ -263,7 +264,7 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
         return
       }
 
-      this.outputChannel.append(chunk.toString())
+      this.outputChannel.append(stripAnsi(chunk.toString()))
     })
 
     childProcess.on('error', (error: Error) => {
@@ -354,7 +355,7 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
     const configKey = entry.uri.toString()
     const state = this.stateByConfig.get(configKey)
     const treeItem = new vscode.TreeItem(
-      entry.relativePath,
+      `${selectStatusEmoji(state)} ${entry.relativePath}`,
       vscode.TreeItemCollapsibleState.Collapsed
     )
 
@@ -547,34 +548,38 @@ const resolveCliLaunch = async (
 }
 
 const processEnv = (): NodeJS.ProcessEnv => {
-  return { ...process.env }
+  const env: NodeJS.ProcessEnv = { ...process.env }
+  delete env.ELECTRON_RUN_AS_NODE
+  env.NO_COLOR = '1'
+  env.FORCE_COLOR = '0'
+  return env
 }
 
 const formatConfigDescription = (state: ConfigState | undefined, preferred: boolean): string => {
   const preferredPrefix = preferred ? 'default' : ''
   if (!state) {
-    return joinDescription(preferredPrefix, '🤷 no run yet')
+    return joinDescription(preferredPrefix, 'no run yet')
   }
 
   if (state.status === 'running') {
-    const runningSuffix = state.profile === 'watch' ? '🤷 watching' : '🤷 running'
+    const runningSuffix = state.profile === 'watch' ? 'watching' : 'running'
     return joinDescription(preferredPrefix, runningSuffix)
   }
 
   if (state.status === 'passed') {
-    return joinDescription(preferredPrefix, '✅ passed')
+    return joinDescription(preferredPrefix, 'passed')
   }
 
   if (state.status === 'failed') {
-    return joinDescription(preferredPrefix, '❌ failed')
+    return joinDescription(preferredPrefix, 'failed')
   }
 
   if (state.status === 'stopped') {
-    return joinDescription(preferredPrefix, '⚠️ stopped')
+    return joinDescription(preferredPrefix, 'stopped')
   }
 
   if (state.status === 'error') {
-    return joinDescription(preferredPrefix, '❗ error', state.errorMessage ?? '')
+    return joinDescription(preferredPrefix, 'error', state.errorMessage ?? '')
   }
 
   return preferredPrefix
@@ -606,6 +611,30 @@ const selectConfigIcon = (state: ConfigState | undefined): vscode.ThemeIcon => {
   }
 
   return new vscode.ThemeIcon('circle-large-outline')
+}
+
+const selectStatusEmoji = (state: ConfigState | undefined): string => {
+  if (!state || state.status === 'idle' || state.status === 'running') {
+    return '🤷'
+  }
+
+  if (state.status === 'passed') {
+    return '✅'
+  }
+
+  if (state.status === 'failed') {
+    return '❌'
+  }
+
+  if (state.status === 'stopped') {
+    return '⚠️'
+  }
+
+  return '❗'
+}
+
+const stripAnsi = (text: string): string => {
+  return text.replaceAll(ANSI_ESCAPE_PATTERN, '')
 }
 
 const normalizePathKey = (filePath: string): string => {
