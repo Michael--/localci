@@ -252,7 +252,8 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
 
     const runId = this.runCounter + 1
     this.runCounter = runId
-    let watchLineBuffer = ''
+    let stdoutBuffer = ''
+    let stderrBuffer = ''
     this.runningByEntry.set(entry.key, { child: childProcess, profile, runId })
     this.setState(entry.key, {
       status: 'running',
@@ -265,21 +266,23 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
         return
       }
 
-      const output = stripAnsi(chunk.toString())
-      this.outputChannel.append(output)
+      stdoutBuffer += chunk.toString()
+      const drained = drainCompleteLines(stdoutBuffer)
+      stdoutBuffer = drained.remainder
 
-      if (profile !== 'watch') {
-        return
-      }
+      for (const line of drained.lines) {
+        const cleanLine = stripAnsi(line)
+        this.outputChannel.appendLine(cleanLine)
 
-      watchLineBuffer += output
-      const lines = watchLineBuffer.split(/\r?\n/u)
-      watchLineBuffer = lines.pop() ?? ''
-      for (const line of lines) {
-        const runExitCode = parseWatchRunExitCodeFromLine(line)
+        if (profile !== 'watch') {
+          continue
+        }
+
+        const runExitCode = parseWatchRunExitCodeFromLine(cleanLine)
         if (runExitCode === null) {
           continue
         }
+
         const currentState = this.stateByEntry.get(entry.key)
         this.setState(entry.key, {
           status: 'running',
@@ -295,7 +298,12 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
         return
       }
 
-      this.outputChannel.append(stripAnsi(chunk.toString()))
+      stderrBuffer += chunk.toString()
+      const drained = drainCompleteLines(stderrBuffer)
+      stderrBuffer = drained.remainder
+      for (const line of drained.lines) {
+        this.outputChannel.appendLine(stripAnsi(line))
+      }
     })
 
     childProcess.on('error', (error: Error) => {
@@ -318,6 +326,11 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
       if (this.runningByEntry.get(entry.key)?.runId !== runId) {
         return
       }
+
+      flushRemainingOutputBuffer(this.outputChannel, stdoutBuffer)
+      flushRemainingOutputBuffer(this.outputChannel, stderrBuffer)
+      stdoutBuffer = ''
+      stderrBuffer = ''
 
       this.runningByEntry.delete(entry.key)
 
@@ -889,6 +902,34 @@ const parseWatchRunExitCodeFromLine = (line: string): 0 | 1 | null => {
   }
 
   return null
+}
+
+const drainCompleteLines = (
+  buffer: string
+): { readonly lines: readonly string[]; readonly remainder: string } => {
+  const normalized = buffer.replaceAll('\r\n', '\n')
+  const parts = normalized.split('\n')
+  if (parts.length === 0) {
+    return {
+      lines: [],
+      remainder: normalized,
+    }
+  }
+
+  const remainder = parts.pop() ?? ''
+  return {
+    lines: parts,
+    remainder,
+  }
+}
+
+const flushRemainingOutputBuffer = (outputChannel: vscode.OutputChannel, buffer: string): void => {
+  const clean = stripAnsi(buffer).trim()
+  if (clean.length === 0) {
+    return
+  }
+
+  outputChannel.appendLine(clean)
 }
 
 const stripAnsi = (text: string): string => {
