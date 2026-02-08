@@ -140,6 +140,7 @@ const parseCiRunnerConfig = (value: unknown): CiRunnerConfig => {
   const cwd = parseOptionalString(value.cwd, 'cwd')
 
   const output = parseOutputConfig(value.output)
+  const watch = parseWatchConfig(value.watch)
 
   return {
     steps,
@@ -147,6 +148,7 @@ const parseCiRunnerConfig = (value: unknown): CiRunnerConfig => {
     env,
     cwd,
     output,
+    watch,
   }
 }
 
@@ -199,6 +201,22 @@ const parseOutputConfig = (value: unknown): CiRunnerConfig['output'] | undefined
   return {
     format,
     verbose,
+  }
+}
+
+const parseWatchConfig = (value: unknown): CiRunnerConfig['watch'] | undefined => {
+  if (value === undefined) {
+    return undefined
+  }
+
+  if (!isRecord(value)) {
+    throw new Error('watch must be an object')
+  }
+
+  const exclude = parseOptionalStringArray(value.exclude, 'watch.exclude')
+
+  return {
+    exclude,
   }
 }
 
@@ -291,6 +309,26 @@ const parseOptionalBoolean = (value: unknown, path: string): boolean | undefined
   }
 
   return value
+}
+
+const parseOptionalStringArray = (value: unknown, path: string): readonly string[] | undefined => {
+  if (value === undefined) {
+    return undefined
+  }
+
+  if (!Array.isArray(value)) {
+    throw new Error(`${path} must be an array`)
+  }
+
+  const result: string[] = []
+  for (const [index, entry] of value.entries()) {
+    if (typeof entry !== 'string' || entry.length === 0) {
+      throw new Error(`${path}[${index}] must be a non-empty string`)
+    }
+    result.push(entry)
+  }
+
+  return result
 }
 
 const parseOptionalStringRecord = (

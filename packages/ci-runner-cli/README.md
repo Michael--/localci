@@ -80,6 +80,9 @@ Example:
     "format": "pretty",
     "verbose": false
   },
+  "watch": {
+    "exclude": ["**/*.log", "packages/ci-runner-cli/generated/**"]
+  },
   "env": {
     "CI": "true"
   },
@@ -157,6 +160,17 @@ export default config
 - Debounces rapid events and queues one rerun while a run is active.
 - Stops cleanly on `SIGINT`/`SIGTERM` (for example `Ctrl+C`).
 - Falls back to a single run when recursive watch is unavailable or the watcher fails at runtime (for example `EMFILE` limits).
+- Ignores common generated paths by default (`node_modules`, `.git`, `dist`, `coverage`, `out`, `build`, `.tmp`, `.vite`, `.vite-temp`, `.turbo`, and `*.tsbuildinfo` files).
+
+Use config-level exclusions when needed:
+
+```json
+{
+  "watch": {
+    "exclude": ["dist", "**/*.log", "packages/*/tmp/**"]
+  }
+}
+```
 
 ## Step Controls
 

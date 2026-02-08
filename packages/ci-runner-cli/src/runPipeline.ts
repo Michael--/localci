@@ -14,6 +14,7 @@ import { loadCiRunnerConfig } from './config/loadConfig.js'
 import type { CliOutputFormat } from './config/types.js'
 import { createDefaultStepParsers } from './parsers/defaultStepParsers.js'
 import { PrettyReporter } from './reporters/prettyReporter.js'
+import { createWatchIgnoreMatcher, normalizeWatchPath } from './watch/watchIgnoreMatcher.js'
 
 /**
  * Runtime options for a CLI execution.
@@ -74,7 +75,13 @@ export const runCliPipeline = async (options: RunCliPipelineOptions): Promise<nu
     return result.exitCode
   }
 
-  return await runWatchLoop(options.cwd, loadedConfig.configFilePath, effectiveFormat, execute)
+  return await runWatchLoop(
+    options.cwd,
+    loadedConfig.configFilePath,
+    effectiveFormat,
+    loadedConfig.config.watch?.exclude,
+    execute
+  )
 }
 
 const printExcludedStepHints = (
@@ -113,6 +120,7 @@ const runWatchLoop = async (
   cwd: string,
   configFilePath: string,
   format: CliOutputFormat,
+  watchExcludes: readonly string[] | undefined,
   execute: () => Promise<PipelineRunResult>
 ): Promise<number> => {
   const initialResult = await execute()
@@ -126,6 +134,7 @@ const runWatchLoop = async (
   let running = false
   let rerunPending = false
   let debounceHandle: NodeJS.Timeout | null = null
+  const shouldIgnorePath = createWatchIgnoreMatcher(watchExcludes)
 
   const runWithLock = async (): Promise<void> => {
     if (running) {
@@ -148,7 +157,7 @@ const runWatchLoop = async (
     }
   }
 
-  const watcher = createWatcher(cwd, configFilePath, () => {
+  const watcher = createWatcher(cwd, configFilePath, shouldIgnorePath, () => {
     if (debounceHandle) {
       clearTimeout(debounceHandle)
     }
@@ -196,10 +205,9 @@ const runWatchLoop = async (
 const createWatcher = (
   cwd: string,
   configFilePath: string,
+  shouldIgnorePath: (filePath: string) => boolean,
   onRelevantChange: () => void
 ): WatchController => {
-  const ignorePrefixes = ['node_modules', '.git', 'dist', 'coverage', 'out', 'build', '.tmp']
-
   try {
     const watcher = watch(cwd, { recursive: true }, (_, fileName) => {
       if (!fileName) {
@@ -207,12 +215,12 @@ const createWatcher = (
       }
 
       const relativePath = fileName.toString()
-      if (shouldIgnore(relativePath, ignorePrefixes)) {
+      if (shouldIgnorePath(relativePath)) {
         return
       }
 
-      const normalizedConfigPath = normalizePathForComparison(relative(cwd, configFilePath))
-      const normalizedRelativePath = normalizePathForComparison(relativePath)
+      const normalizedConfigPath = normalizeWatchPath(relative(cwd, configFilePath))
+      const normalizedRelativePath = normalizeWatchPath(relativePath)
       const messagePath =
         normalizedRelativePath === normalizedConfigPath ? `${relativePath} (config)` : relativePath
       process.stdout.write(`\nChange detected: ${messagePath}\n`)
@@ -237,17 +245,6 @@ const createWatcher = (
       onError: (): void => undefined,
     }
   }
-}
-
-const shouldIgnore = (filePath: string, prefixes: readonly string[]): boolean => {
-  const normalizedPath = normalizePathForComparison(filePath)
-  return prefixes.some(
-    (prefix) => normalizedPath === prefix || normalizedPath.startsWith(`${prefix}/`)
-  )
-}
-
-const normalizePathForComparison = (filePath: string): string => {
-  return filePath.replaceAll('\\', '/')
 }
 
 const formatWatchErrorMessage = (error: Error): string => {

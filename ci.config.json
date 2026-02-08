@@ -1,4 +1,7 @@
 {
+  "watch": {
+    "exclude": ["packages/ci-runner-cli/dist/**", "packages/ci-runner-cli/node_modules/**"]
+  },
   "steps": [
     {
       "id": "typecheck",

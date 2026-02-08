@@ -26,6 +26,21 @@ export interface CliStepCondition {
 }
 
 /**
+ * Watch behavior configuration for file-change reruns.
+ */
+export interface CiRunnerWatchConfig {
+  /**
+   * Optional exclusion patterns evaluated against changed paths relative to `cwd`.
+   *
+   * Supports:
+   * - segment names (`dist`, `node_modules`)
+   * - path prefixes (`packages/ci-runner-cli/generated`)
+   * - glob patterns (for example `star-star-slash-star-dot-log`)
+   */
+  readonly exclude?: readonly string[]
+}
+
+/**
  * User-facing step definition loaded from config.
  */
 export interface CliConfigStep {
@@ -70,4 +85,6 @@ export interface CiRunnerConfig {
     /** Emits all step output on success when true. */
     readonly verbose?: boolean
   }
+  /** Watch-mode options for rerun filtering. */
+  readonly watch?: CiRunnerWatchConfig
 }
