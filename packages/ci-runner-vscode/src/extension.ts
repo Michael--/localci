@@ -984,7 +984,27 @@ const shouldSuppressOutputLine = (line: string): boolean => {
     return true
   }
 
+  if (isRecursiveProgressNoiseLine(normalized)) {
+    return true
+  }
+
   return false
+}
+
+const isRecursiveProgressNoiseLine = (line: string): boolean => {
+  if (line.length === 0) {
+    return false
+  }
+
+  // pnpm -r progress noise lines:
+  // - "<project> <script>$ <command>"
+  // - "<project> <script>: Done"
+  const startsScriptMatch = /^\S+\s+[a-z0-9:_-]+\$\s+.+$/iu.test(line)
+  if (startsScriptMatch) {
+    return true
+  }
+
+  return /^\S+\s+[a-z0-9:_-]+:\s+Done$/iu.test(line)
 }
 
 const toClickableTypeScriptDiagnostic = (
