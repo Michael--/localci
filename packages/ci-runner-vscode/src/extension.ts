@@ -411,11 +411,12 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
     }
     treeItem.tooltip = tooltipParts.join('\n')
     treeItem.command = {
-      command: 'vscode.open',
-      title: 'Open Config',
-      arguments: [entry.config.uri],
+      command: state?.status === 'running' ? 'ciRunner.stopConfig' : 'ciRunner.runConfigDefault',
+      title: state?.status === 'running' ? 'Stop' : 'Run',
+      arguments: [entry],
     }
-    treeItem.contextValue = 'ciRunner.target'
+    treeItem.contextValue =
+      state?.status === 'running' ? 'ciRunnerTargetRunning' : 'ciRunnerTargetIdle'
     treeItem.iconPath = selectConfigIcon(state)
 
     return treeItem

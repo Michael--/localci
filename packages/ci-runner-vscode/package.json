@@ -54,11 +54,17 @@
       },
       {
         "command": "ciRunner.runConfigDefault",
-        "title": "Run Config (Default Profile)"
+        "title": "Run Config (Default Profile)",
+        "icon": {
+          "id": "play"
+        }
       },
       {
         "command": "ciRunner.stopConfig",
-        "title": "Stop Config Run"
+        "title": "Stop Config Run",
+        "icon": {
+          "id": "stop-circle"
+        }
       },
       {
         "command": "ciRunner.stopAll",
@@ -70,6 +76,18 @@
       }
     ],
     "menus": {
+      "view/item/context": [
+        {
+          "command": "ciRunner.runConfigDefault",
+          "when": "view == ciRunner.sidebar && viewItem == ciRunnerTargetIdle",
+          "group": "inline@1"
+        },
+        {
+          "command": "ciRunner.stopConfig",
+          "when": "view == ciRunner.sidebar && viewItem == ciRunnerTargetRunning",
+          "group": "inline@1"
+        }
+      ],
       "view/title": [
         {
           "command": "ciRunner.refresh",
