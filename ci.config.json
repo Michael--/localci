@@ -1,0 +1,9 @@
+{
+  "steps": [
+    {
+      "id": "typecheck",
+      "name": "Typecheck Workspace",
+      "command": "pnpm run typecheck"
+    }
+  ]
+}

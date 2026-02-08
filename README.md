@@ -30,6 +30,8 @@ pnpm run test
 - `pnpm run build`
 - `pnpm run check`
 - `pnpm run smoke`
+- `pnpm run ci:self`
+- `pnpm run ci:self:watch`
 
 ## CLI Package
 

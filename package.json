@@ -19,6 +19,8 @@
     "format:check": "prettier --check .",
     "spell": "cspell \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "smoke": "pnpm --filter @number10/ci-runner-smoke run smoke:json",
+    "ci:self": "pnpm --filter @number10/ci-runner-cli run build && node --enable-source-maps packages/ci-runner-cli/dist/cli.js --config ci.config.json --cwd . --format pretty",
+    "ci:self:watch": "pnpm --filter @number10/ci-runner-cli run build && node --enable-source-maps packages/ci-runner-cli/dist/cli.js --config ci.config.json --cwd . --format pretty --watch",
     "prepare": "husky",
     "ci": "pnpm run check && pnpm run smoke",
     "release:clean": "node -e \"require('node:fs').rmSync('.artifacts', { recursive: true, force: true })\"",
