@@ -32,7 +32,7 @@
 
 ### P1: Adoption and CI ecosystem
 
-- [ ] Publish a short "recipes" doc for common pipelines (lint/test/build/e2e).
+- [x] Publish a short "recipes" doc for common pipelines (lint/test/build/e2e): `docs/ci-runner-recipes.md`.
 - [ ] Collect adopter requests for additional formatter targets.
 - [ ] Re-evaluate formatter backlog (`junit`, GitHub Actions summary) only when demand is proven.
 
