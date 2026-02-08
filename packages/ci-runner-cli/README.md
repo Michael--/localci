@@ -110,6 +110,18 @@ Example:
         }
       }
     }
+  ],
+  "targets": [
+    {
+      "id": "quick",
+      "name": "Quick Checks",
+      "includeStepIds": ["lint", "test"]
+    },
+    {
+      "id": "no-build",
+      "name": "Without Build",
+      "excludeStepIds": ["build"]
+    }
   ]
 }
 ```
@@ -147,12 +159,33 @@ export default config
 ## CLI Flags
 
 - `--config <path>` Explicit config file path.
+- `--target <id>` Run only one configured target id.
+- `--list-targets` Print configured targets and exit.
 - `--format <pretty|json>` Output format override.
 - `--verbose` Print stdout/stderr also for successful steps in pretty mode.
 - `--watch` Re-run on file changes.
 - `--fail-fast` Stop after first hard failure.
 - `--cwd <path>` Base working directory.
 - `-h, --help` Show usage help.
+
+## Named Targets
+
+Use `targets` to expose reusable subsets without duplicating step definitions:
+
+- `includeStepIds`: allow-list of steps.
+- `excludeStepIds`: deny-list applied after include filtering.
+
+Run one target:
+
+```bash
+ci-runner --target quick --format pretty
+```
+
+List configured targets for editor integrations:
+
+```bash
+ci-runner --list-targets --format json
+```
 
 ## Watch Mode
 
