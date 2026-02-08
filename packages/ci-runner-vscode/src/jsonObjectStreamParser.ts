@@ -13,6 +13,15 @@ export class JsonObjectStreamParser {
   private escaping = false
 
   /**
+   * Indicates whether the parser is currently inside a JSON object.
+   *
+   * @returns True when an object has started but is not finished yet.
+   */
+  public isCollectingObject(): boolean {
+    return this.collecting
+  }
+
+  /**
    * Feeds a new text chunk and returns parsed JSON objects in order.
    *
    * @param chunk Raw text chunk from stdout.

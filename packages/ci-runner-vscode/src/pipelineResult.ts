@@ -17,11 +17,27 @@ export interface PipelineSummary {
 }
 
 /**
+ * Result details for one executed pipeline step.
+ */
+export interface PipelineStepResult {
+  /** Display label of the step. */
+  readonly name: string
+  /** Final status of the step execution. */
+  readonly status: 'passed' | 'failed' | 'skipped' | 'timed_out'
+  /** Optional non-success reason. */
+  readonly reason?: string
+  /** Duration in milliseconds for the final step attempt. */
+  readonly durationMs: number
+}
+
+/**
  * Subset of pipeline run data required by the extension UI.
  */
 export interface PipelineRunResult {
   /** Aggregated summary values. */
   readonly summary: PipelineSummary
+  /** Ordered list of step outcomes. */
+  readonly steps: readonly PipelineStepResult[]
   /** Process-style run exit code. */
   readonly exitCode: 0 | 1
   /** Unix timestamp for run completion. */
@@ -49,6 +65,16 @@ export const parsePipelineRunResult = (value: unknown): PipelineRunResult | null
     return null
   }
 
+  const stepsValue = value.steps
+  if (!Array.isArray(stepsValue)) {
+    return null
+  }
+
+  const steps = stepsValue.map((entry) => parseStep(entry))
+  if (steps.some((entry) => entry === null)) {
+    return null
+  }
+
   const exitCodeValue = value.exitCode
   if (exitCodeValue !== 0 && exitCodeValue !== 1) {
     return null
@@ -61,8 +87,47 @@ export const parsePipelineRunResult = (value: unknown): PipelineRunResult | null
 
   return {
     summary,
+    steps: steps.filter((entry): entry is PipelineStepResult => entry !== null),
     exitCode: exitCodeValue,
     finishedAt: finishedAtValue,
+  }
+}
+
+const parseStep = (value: unknown): PipelineStepResult | null => {
+  if (!isRecord(value)) {
+    return null
+  }
+
+  const name = value.name
+  if (typeof name !== 'string' || name.length === 0) {
+    return null
+  }
+
+  const status = value.status
+  if (
+    status !== 'passed' &&
+    status !== 'failed' &&
+    status !== 'skipped' &&
+    status !== 'timed_out'
+  ) {
+    return null
+  }
+
+  const durationMs = parseNumber(value.durationMs)
+  if (durationMs === null) {
+    return null
+  }
+
+  const reason = value.reason
+  if (reason !== undefined && typeof reason !== 'string') {
+    return null
+  }
+
+  return {
+    name,
+    status,
+    reason,
+    durationMs,
   }
 }
 

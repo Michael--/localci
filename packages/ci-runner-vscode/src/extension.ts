@@ -44,10 +44,17 @@ interface ConfigNode {
 interface ActionNode {
   readonly type: 'action'
   readonly entry: ConfigEntry
-  readonly action: 'run' | 'watch' | 'fail-fast' | 'stop-watch'
+  readonly action: 'run' | 'watch' | 'fail-fast' | 'stop'
 }
 
-type TreeNode = ConfigNode | ActionNode
+interface MessageNode {
+  readonly type: 'message'
+  readonly label: string
+  readonly description?: string
+  readonly command?: vscode.Command
+}
+
+type TreeNode = ConfigNode | ActionNode | MessageNode
 
 const CONFIG_SECTION = 'ciRunner'
 const DEFAULT_CONFIG_PATH = 'defaultConfigPath'
@@ -129,15 +136,48 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
       return this.createConfigTreeItem(element.entry)
     }
 
+    if (element.type === 'message') {
+      return this.createMessageTreeItem(element)
+    }
+
     return this.createActionTreeItem(element)
   }
 
   public getChildren(element?: TreeNode): readonly TreeNode[] {
     if (!element) {
+      if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
+        return [
+          {
+            type: 'message',
+            label: 'No workspace folder is open.',
+            description: 'Open a folder to detect CI Runner configs.',
+          },
+        ]
+      }
+
+      if (this.configs.length === 0) {
+        return [
+          {
+            type: 'message',
+            label: 'No ci.config.json or ci.config.ts found.',
+            description: 'Rename your config or set ciRunner.defaultConfigPath.',
+          },
+          {
+            type: 'message',
+            label: 'Open CI Runner settings',
+            command: {
+              command: 'workbench.action.openSettings',
+              title: 'Open Settings',
+              arguments: ['ciRunner.defaultConfigPath'],
+            },
+          },
+        ]
+      }
+
       return this.configs.map((entry) => ({ type: 'config', entry }))
     }
 
-    if (element.type === 'action') {
+    if (element.type === 'action' || element.type === 'message') {
       return []
     }
 
@@ -148,8 +188,8 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
     ]
 
     const state = this.stateByConfig.get(element.entry.uri.toString())
-    if (state?.status === 'running' && state.profile === 'watch') {
-      actions.push({ type: 'action', entry: element.entry, action: 'stop-watch' })
+    if (state?.status === 'running') {
+      actions.push({ type: 'action', entry: element.entry, action: 'stop' })
     }
 
     return actions
@@ -221,8 +261,6 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
       }
 
       const text = chunk.toString()
-      this.outputChannel.append(text)
-
       const parsedObjects = parser.feed(text)
       for (const parsedObject of parsedObjects) {
         const result = parsePipelineRunResult(parsedObject)
@@ -235,6 +273,11 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
           profile,
           lastResult: result,
         })
+        this.outputChannel.appendLine(formatRunResultForOutput(result))
+      }
+
+      if (shouldAppendPlainOutput(text, parsedObjects.length, parser.isCollectingObject())) {
+        this.outputChannel.append(text)
       }
     })
 
@@ -308,8 +351,15 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
     })
   }
 
-  public stopWatch(configUri: vscode.Uri): void {
-    this.stopConfigInternal(configUri.toString(), 'Watch stopped by user.')
+  public stopConfig(configUri: vscode.Uri): void {
+    this.stopConfigInternal(configUri.toString(), 'Run stopped by user.')
+  }
+
+  public stopAllRuns(): void {
+    const runningConfigKeys = [...this.runningByConfig.keys()]
+    for (const configKey of runningConfigKeys) {
+      this.stopConfigInternal(configKey, 'Run stopped by user (Stop All).')
+    }
   }
 
   public openOutput(): void {
@@ -343,12 +393,22 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
     treeItem.description = formatConfigDescription(state, entry.preferred)
     treeItem.tooltip = `${entry.workspaceFolder.name}: ${entry.relativePath}`
     treeItem.command = {
-      command: 'ciRunner.runConfigDefault',
-      title: 'Run Config',
+      command: 'vscode.open',
+      title: 'Open Config',
       arguments: [entry.uri],
     }
     treeItem.contextValue = 'ciRunner.config'
     treeItem.iconPath = selectConfigIcon(state)
+
+    return treeItem
+  }
+
+  private createMessageTreeItem(node: MessageNode): vscode.TreeItem {
+    const treeItem = new vscode.TreeItem(node.label, vscode.TreeItemCollapsibleState.None)
+    treeItem.description = node.description
+    treeItem.command = node.command
+    treeItem.iconPath = new vscode.ThemeIcon('info')
+    treeItem.contextValue = 'ciRunner.message'
 
     return treeItem
   }
@@ -358,21 +418,21 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
       run: 'Run',
       watch: 'Run (Watch)',
       'fail-fast': 'Run (Fail Fast)',
-      'stop-watch': 'Stop Watch',
+      stop: 'Stop',
     }
 
     const commandByAction: Record<ActionNode['action'], string> = {
       run: 'ciRunner.runConfig',
       watch: 'ciRunner.runConfigWatch',
       'fail-fast': 'ciRunner.runConfigFailFast',
-      'stop-watch': 'ciRunner.stopWatch',
+      stop: 'ciRunner.stopConfig',
     }
 
     const iconByAction: Record<ActionNode['action'], vscode.ThemeIcon> = {
       run: new vscode.ThemeIcon('play'),
       watch: new vscode.ThemeIcon('watch'),
       'fail-fast': new vscode.ThemeIcon('warning'),
-      'stop-watch': new vscode.ThemeIcon('stop-circle'),
+      stop: new vscode.ThemeIcon('stop-circle'),
     }
 
     const treeItem = new vscode.TreeItem(labels[node.action], vscode.TreeItemCollapsibleState.None)
@@ -554,6 +614,52 @@ const formatSummary = (summary: PipelineRunResult['summary']): string => {
   return `P:${summary.passed} F:${summary.failed} S:${summary.skipped} T:${summary.timedOut} (${summary.durationMs}ms)`
 }
 
+const formatRunResultForOutput = (result: PipelineRunResult): string => {
+  const statusLabel = result.exitCode === 0 ? 'PASSED' : 'FAILED'
+  const lines = [
+    `[Result] ${statusLabel} ${formatSummary(result.summary)}`,
+    ...result.steps.map((step) => {
+      const status = formatStepStatus(step.status)
+      const reason = step.reason ? ` | reason: ${step.reason}` : ''
+      return `  ${status} ${step.name} (${step.durationMs}ms${reason})`
+    }),
+  ]
+
+  return lines.join('\n')
+}
+
+const formatStepStatus = (status: PipelineRunResult['steps'][number]['status']): string => {
+  if (status === 'passed') {
+    return 'PASS'
+  }
+
+  if (status === 'failed') {
+    return 'FAIL'
+  }
+
+  if (status === 'timed_out') {
+    return 'TIME'
+  }
+
+  return 'SKIP'
+}
+
+const shouldAppendPlainOutput = (
+  chunk: string,
+  parsedObjectCount: number,
+  collectingJsonObject: boolean
+): boolean => {
+  if (parsedObjectCount > 0 || collectingJsonObject) {
+    return false
+  }
+
+  if (chunk.includes('{') || chunk.includes('}')) {
+    return false
+  }
+
+  return true
+}
+
 const selectConfigIcon = (state: ConfigState | undefined): vscode.ThemeIcon => {
   if (!state) {
     return new vscode.ThemeIcon('circle-large-outline')
@@ -616,8 +722,11 @@ export const activate = async (context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('ciRunner.runConfigDefault', async (configUri: vscode.Uri) => {
       await model.runDefaultProfile(configUri)
     }),
-    vscode.commands.registerCommand('ciRunner.stopWatch', (configUri: vscode.Uri) => {
-      model.stopWatch(configUri)
+    vscode.commands.registerCommand('ciRunner.stopConfig', (configUri: vscode.Uri) => {
+      model.stopConfig(configUri)
+    }),
+    vscode.commands.registerCommand('ciRunner.stopAll', () => {
+      model.stopAllRuns()
     }),
     vscode.commands.registerCommand('ciRunner.openOutput', () => {
       model.openOutput()

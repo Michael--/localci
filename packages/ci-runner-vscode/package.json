@@ -22,21 +22,13 @@
     "onCommand:ciRunner.runConfigWatch",
     "onCommand:ciRunner.runConfigFailFast",
     "onCommand:ciRunner.runConfigDefault",
-    "onCommand:ciRunner.stopWatch",
+    "onCommand:ciRunner.stopConfig",
+    "onCommand:ciRunner.stopAll",
     "onCommand:ciRunner.openOutput"
   ],
   "contributes": {
-    "viewsContainers": {
-      "activitybar": [
-        {
-          "id": "ciRunner",
-          "title": "CI Runner",
-          "icon": "media/ci-runner.svg"
-        }
-      ]
-    },
     "views": {
-      "ciRunner": [
+      "explorer": [
         {
           "id": "ciRunner.sidebar",
           "name": "CI Runner"
@@ -65,14 +57,37 @@
         "title": "CI Runner: Run Config (Default Profile)"
       },
       {
-        "command": "ciRunner.stopWatch",
-        "title": "CI Runner: Stop Watch"
+        "command": "ciRunner.stopConfig",
+        "title": "CI Runner: Stop Config Run"
+      },
+      {
+        "command": "ciRunner.stopAll",
+        "title": "CI Runner: Stop All Runs"
       },
       {
         "command": "ciRunner.openOutput",
         "title": "CI Runner: Open Output"
       }
     ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "ciRunner.refresh",
+          "when": "view == ciRunner.sidebar",
+          "group": "navigation@1"
+        },
+        {
+          "command": "ciRunner.stopAll",
+          "when": "view == ciRunner.sidebar",
+          "group": "navigation@2"
+        },
+        {
+          "command": "ciRunner.openOutput",
+          "when": "view == ciRunner.sidebar",
+          "group": "navigation@3"
+        }
+      ]
+    },
     "configuration": {
       "title": "CI Runner",
       "properties": {

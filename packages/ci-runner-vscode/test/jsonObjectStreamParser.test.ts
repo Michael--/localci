@@ -7,7 +7,11 @@ describe('JsonObjectStreamParser', () => {
   it('extracts one complete object across multiple chunks', () => {
     const parser = new JsonObjectStreamParser()
 
-    expect(parser.feed('{"summary":{"total":1,"passed":1,')).toEqual([])
+    expect(
+      parser.feed(
+        '{"steps":[{"name":"Lint","status":"passed","durationMs":1}],"summary":{"total":1,"passed":1,'
+      )
+    ).toEqual([])
     const parsed = parser.feed(
       '"failed":0,"skipped":0,"timedOut":0,"durationMs":1},"exitCode":0,"finishedAt":123}'
     )
@@ -19,8 +23,8 @@ describe('JsonObjectStreamParser', () => {
   it('extracts multiple objects from mixed text stream', () => {
     const parser = new JsonObjectStreamParser()
     const chunk =
-      'Watch mode enabled\n{"summary":{"total":1,"passed":1,"failed":0,"skipped":0,"timedOut":0,"durationMs":10},"exitCode":0,"finishedAt":11}\n' +
-      'Change detected\n{"summary":{"total":2,"passed":1,"failed":1,"skipped":0,"timedOut":0,"durationMs":15},"exitCode":1,"finishedAt":12}\n'
+      'Watch mode enabled\n{"steps":[{"name":"Lint","status":"passed","durationMs":10}],"summary":{"total":1,"passed":1,"failed":0,"skipped":0,"timedOut":0,"durationMs":10},"exitCode":0,"finishedAt":11}\n' +
+      'Change detected\n{"steps":[{"name":"Test","status":"failed","reason":"command_failed","durationMs":15}],"summary":{"total":2,"passed":1,"failed":1,"skipped":0,"timedOut":0,"durationMs":15},"exitCode":1,"finishedAt":12}\n'
 
     const parsed = parser.feed(chunk)
 
@@ -46,6 +50,13 @@ describe('JsonObjectStreamParser', () => {
 describe('parsePipelineRunResult', () => {
   it('parses a valid pipeline result', () => {
     const result = parsePipelineRunResult({
+      steps: [
+        {
+          name: 'Lint',
+          status: 'passed',
+          durationMs: 120,
+        },
+      ],
       summary: {
         total: 3,
         passed: 2,
@@ -64,7 +75,11 @@ describe('parsePipelineRunResult', () => {
 
   it('returns null for invalid payloads', () => {
     expect(parsePipelineRunResult({})).toBeNull()
-    expect(parsePipelineRunResult({ summary: {}, exitCode: 0, finishedAt: 1 })).toBeNull()
-    expect(parsePipelineRunResult({ summary: { total: 1 }, exitCode: 0, finishedAt: 1 })).toBeNull()
+    expect(
+      parsePipelineRunResult({ steps: [], summary: {}, exitCode: 0, finishedAt: 1 })
+    ).toBeNull()
+    expect(
+      parsePipelineRunResult({ steps: [], summary: { total: 1 }, exitCode: 0, finishedAt: 1 })
+    ).toBeNull()
   })
 })
