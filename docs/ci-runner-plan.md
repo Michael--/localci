@@ -45,10 +45,10 @@
 - [x] Keep sidebar focused on overview/state (configs, last status, quick actions).
 - [x] Parse CLI `--format json` for structured status badges and summary counts.
 - [x] Add workspace settings for default config path and default run profile.
-- [ ] Add named run targets inside one config file to support partial, frequent workflows.
-- [ ] Show target names in the tree (for example `CI Full`, `Lint`, `Unit Tests`) instead of only file paths.
-- [ ] Keep existing run profiles (`standard`, `watch`, `fail-fast`) available per target.
-- [ ] Keep backward compatibility for single-config/single-pipeline repositories.
+- [x] Add named run targets inside one config file to support partial, frequent workflows.
+- [x] Show target names in the tree (for example `CI Full`, `Lint`, `Unit Tests`) instead of only file paths.
+- [x] Keep existing run profiles (`standard`, `watch`, `fail-fast`) available per target.
+- [x] Keep backward compatibility for single-config/single-pipeline repositories.
 
 ### P3: Deferred UX expansions
 
@@ -133,6 +133,6 @@ interface CiRunnerConfig {
 
 - [x] Complete P0 and publish initial CLI release.
 - [ ] Implement P1 recipes and collect formatter requests from first adopters.
-- [ ] Build P2 extension MVP (overview in sidebar, details in Output Channel).
-- [ ] Implement named run targets end-to-end (CLI `--target` + VS Code target list).
+- [x] Build P2 extension MVP (overview in sidebar, details in Output Channel).
+- [x] Implement named run targets end-to-end (CLI `--target` + VS Code target list).
 - [ ] Evaluate history/drilldown/web UI needs after real usage data.
