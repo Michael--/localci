@@ -115,7 +115,7 @@ export class PrettyReporter implements PipelineReporter {
   }
 
   private printOutput(result: StepResult): void {
-    const stdout = result.output.stdout.trim()
+    const stdout = filterFailedStepOutput(result.status, result.output.stdout).trim()
     const stderr = result.output.stderr.trim()
 
     if (stdout) {
@@ -130,6 +130,94 @@ export class PrettyReporter implements PipelineReporter {
       process.stdout.write('\n')
     }
   }
+}
+
+const filterFailedStepOutput = (status: StepResult['status'], stdout: string): string => {
+  if (status !== 'failed') {
+    return stdout
+  }
+
+  return filterRecursivePnpmFailureOutput(stdout)
+}
+
+const filterRecursivePnpmFailureOutput = (stdout: string): string => {
+  const lines = stdout.split(/\r?\n/u)
+  const hasRecursiveFailureMarker = lines.some((line) =>
+    line.includes('ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL')
+  )
+  if (!hasRecursiveFailureMarker) {
+    return stdout
+  }
+
+  const failedExecutions = lines
+    .map((line) => parseFailedRecursiveExecution(line))
+    .filter((execution): execution is FailedRecursiveExecution => execution !== null)
+  if (failedExecutions.length === 0) {
+    return stdout
+  }
+
+  const failingProjectPaths = new Set(failedExecutions.map((execution) => execution.projectPath))
+  const failingScriptPrefixes = new Set(
+    failedExecutions.map((execution) => `${execution.projectPath} ${execution.scriptName}:`)
+  )
+
+  const filtered: string[] = []
+  for (const line of lines) {
+    const trimmedLine = line.trimEnd()
+    if (trimmedLine.length === 0) {
+      continue
+    }
+
+    const normalizedLine = trimmedLine.replaceAll('\\', '/')
+    const keepLine =
+      trimmedLine.startsWith('> ') ||
+      trimmedLine.startsWith('Scope:') ||
+      [...failingScriptPrefixes].some((prefix) => trimmedLine.startsWith(prefix)) ||
+      [...failingProjectPaths].some((projectPath) =>
+        lineReferencesProject(normalizedLine, projectPath)
+      ) ||
+      trimmedLine.includes('ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL') ||
+      trimmedLine.includes('ELIFECYCLE') ||
+      trimmedLine.startsWith('Exit status ')
+
+    if (keepLine) {
+      filtered.push(line)
+    }
+  }
+
+  return filtered.length > 0 ? filtered.join('\n') : stdout
+}
+
+interface FailedRecursiveExecution {
+  readonly projectPath: string
+  readonly scriptName: string
+}
+
+const parseFailedRecursiveExecution = (line: string): FailedRecursiveExecution | null => {
+  const trimmedLine = line.trim()
+  const match = trimmedLine.match(/^(?<projectPath>\S+)\s+(?<scriptName>[a-z0-9:_-]+):\s+Failed$/iu)
+  if (!match?.groups) {
+    return null
+  }
+
+  const { projectPath, scriptName } = match.groups
+  if (!projectPath || !scriptName) {
+    return null
+  }
+
+  return {
+    projectPath,
+    scriptName,
+  }
+}
+
+const lineReferencesProject = (line: string, projectPath: string): boolean => {
+  return (
+    line.startsWith(`${projectPath}:`) ||
+    line.includes(`/${projectPath}:`) ||
+    line.endsWith(`/${projectPath}`) ||
+    line.includes(` ${projectPath}:`)
+  )
 }
 
 const indent = (text: string): string => {
