@@ -27,6 +27,7 @@ interface ConfigState {
   readonly profile?: RunProfile
   readonly lastExitCode?: 0 | 1
   readonly errorMessage?: string
+  readonly watchRunActive?: boolean
 }
 
 interface RunningProcess {
@@ -259,6 +260,7 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
       status: 'running',
       profile,
       lastExitCode: this.stateByEntry.get(entry.key)?.lastExitCode,
+      watchRunActive: profile === 'watch',
     })
 
     childProcess.stdout.on('data', (chunk: Buffer) => {
@@ -282,6 +284,18 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
           continue
         }
 
+        if (isWatchRunStartLine(cleanLine)) {
+          const currentState = this.stateByEntry.get(entry.key)
+          this.setState(entry.key, {
+            status: 'running',
+            profile,
+            lastExitCode: currentState?.lastExitCode,
+            errorMessage: currentState?.errorMessage,
+            watchRunActive: true,
+          })
+          continue
+        }
+
         const runExitCode = parseWatchRunExitCodeFromLine(cleanLine)
         if (runExitCode === null) {
           continue
@@ -293,6 +307,7 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
           profile,
           lastExitCode: runExitCode,
           errorMessage: currentState?.errorMessage,
+          watchRunActive: false,
         })
       }
     })
@@ -841,6 +856,10 @@ const selectConfigIcon = (state: ConfigState | undefined): vscode.ThemeIcon => {
   }
 
   if (state.status === 'running') {
+    if (state.profile === 'watch' && state.watchRunActive === false) {
+      return new vscode.ThemeIcon('circle-large-outline')
+    }
+
     return new vscode.ThemeIcon('sync~spin')
   }
 
@@ -918,6 +937,10 @@ const parseWatchRunExitCodeFromLine = (line: string): 0 | 1 | null => {
   }
 
   return null
+}
+
+const isWatchRunStartLine = (line: string): boolean => {
+  return line.trim().startsWith('ci-runner: executing ')
 }
 
 const drainCompleteLines = (
