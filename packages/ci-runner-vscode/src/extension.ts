@@ -335,8 +335,16 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
         return
       }
 
-      flushRemainingOutputBuffer(this.outputChannel, stdoutBuffer)
-      flushRemainingOutputBuffer(this.outputChannel, stderrBuffer)
+      flushRemainingOutputBuffer(
+        this.outputChannel,
+        stdoutBuffer,
+        entry.config.workspaceFolder.uri.fsPath
+      )
+      flushRemainingOutputBuffer(
+        this.outputChannel,
+        stderrBuffer,
+        entry.config.workspaceFolder.uri.fsPath
+      )
       stdoutBuffer = ''
       stderrBuffer = ''
 
@@ -931,13 +939,17 @@ const drainCompleteLines = (
   }
 }
 
-const flushRemainingOutputBuffer = (outputChannel: vscode.OutputChannel, buffer: string): void => {
+const flushRemainingOutputBuffer = (
+  outputChannel: vscode.OutputChannel,
+  buffer: string,
+  workspaceRootPath: string
+): void => {
   const clean = stripAnsi(buffer)
   if (clean.trim().length === 0) {
     return
   }
 
-  appendEnhancedOutputLine(outputChannel, clean, '')
+  appendEnhancedOutputLine(outputChannel, clean, workspaceRootPath)
 }
 
 const appendEnhancedOutputLine = (
@@ -979,15 +991,13 @@ const toClickableTypeScriptDiagnostic = (
   line: string,
   workspaceRootPath: string
 ): string | null => {
-  const recursiveMatch = line.match(
-    /^(?<packagePath>\S+)\s+\S+:\s+(?<filePath>.+)\((?<line>\d+),(?<column>\d+)\):\s+(?<message>error TS\d+:.*)$/u
+  const normalizedLine = line.trimStart()
+  const recursiveMatch = normalizedLine.match(
+    /^(?<packagePath>\S+)\s+(?<scriptPrefix>.+):\s+(?<filePath>.+)\((?<line>\d+),(?<column>\d+)\):\s+(?<message>error TS\d+:.*)$/u
   )
   if (recursiveMatch?.groups) {
-    const filePath = resolve(
-      workspaceRootPath,
-      recursiveMatch.groups.packagePath,
-      recursiveMatch.groups.filePath
-    )
+    const relativeFilePath = recursiveMatch.groups.filePath.trim()
+    const filePath = resolve(workspaceRootPath, recursiveMatch.groups.packagePath, relativeFilePath)
     const lineNumber = Number.parseInt(recursiveMatch.groups.line, 10)
     const columnNumber = Number.parseInt(recursiveMatch.groups.column, 10)
     const message = recursiveMatch.groups.message
@@ -998,7 +1008,7 @@ const toClickableTypeScriptDiagnostic = (
     return `${filePath}:${lineNumber}:${columnNumber} - ${message}`
   }
 
-  const directMatch = line.match(
+  const directMatch = normalizedLine.match(
     /^(?<filePath>.+)\((?<line>\d+),(?<column>\d+)\):\s+(?<message>error TS\d+:.*)$/u
   )
   if (!directMatch?.groups) {
