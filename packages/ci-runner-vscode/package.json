@@ -38,35 +38,35 @@
     "commands": [
       {
         "command": "ciRunner.refresh",
-        "title": "CI Runner: Refresh"
+        "title": "Refresh"
       },
       {
         "command": "ciRunner.runConfig",
-        "title": "CI Runner: Run Config"
+        "title": "Run Config"
       },
       {
         "command": "ciRunner.runConfigWatch",
-        "title": "CI Runner: Run Config (Watch)"
+        "title": "Run Config (Watch)"
       },
       {
         "command": "ciRunner.runConfigFailFast",
-        "title": "CI Runner: Run Config (Fail Fast)"
+        "title": "Run Config (Fail Fast)"
       },
       {
         "command": "ciRunner.runConfigDefault",
-        "title": "CI Runner: Run Config (Default Profile)"
+        "title": "Run Config (Default Profile)"
       },
       {
         "command": "ciRunner.stopConfig",
-        "title": "CI Runner: Stop Config Run"
+        "title": "Stop Config Run"
       },
       {
         "command": "ciRunner.stopAll",
-        "title": "CI Runner: Stop All Runs"
+        "title": "Stop All Runs"
       },
       {
         "command": "ciRunner.openOutput",
-        "title": "CI Runner: Open Output"
+        "title": "Open Output"
       }
     ],
     "menus": {

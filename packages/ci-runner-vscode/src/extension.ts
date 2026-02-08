@@ -4,11 +4,8 @@ import { join, relative } from 'node:path'
 
 import * as vscode from 'vscode'
 
-import { JsonObjectStreamParser } from './jsonObjectStreamParser.js'
-import { parsePipelineRunResult, type PipelineRunResult } from './pipelineResult.js'
-
 type RunProfile = 'standard' | 'watch' | 'fail-fast'
-type RunStatus = 'idle' | 'running' | 'passed' | 'failed' | 'error'
+type RunStatus = 'idle' | 'running' | 'passed' | 'failed' | 'stopped' | 'error'
 
 interface ConfigEntry {
   readonly uri: vscode.Uri
@@ -20,14 +17,13 @@ interface ConfigEntry {
 interface ConfigState {
   readonly status: RunStatus
   readonly profile?: RunProfile
-  readonly lastResult?: PipelineRunResult
+  readonly lastExitCode?: 0 | 1
   readonly errorMessage?: string
 }
 
 interface RunningProcess {
   readonly child: ChildProcessWithoutNullStreams
   readonly profile: RunProfile
-  readonly parser: JsonObjectStreamParser
   readonly runId: number
 }
 
@@ -223,7 +219,7 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
       '--cwd',
       workspaceFolder.uri.fsPath,
       '--format',
-      'json',
+      'pretty',
     ]
     const profileArgs =
       profile === 'watch' ? ['--watch'] : profile === 'fail-fast' ? ['--fail-fast'] : []
@@ -245,14 +241,13 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
       stdio: 'pipe',
     })
 
-    const parser = new JsonObjectStreamParser()
     const runId = this.runCounter + 1
     this.runCounter = runId
-    this.runningByConfig.set(configKey, { child: childProcess, profile, parser, runId })
+    this.runningByConfig.set(configKey, { child: childProcess, profile, runId })
     this.setState(configKey, {
       status: 'running',
       profile,
-      lastResult: this.stateByConfig.get(configKey)?.lastResult,
+      lastExitCode: this.stateByConfig.get(configKey)?.lastExitCode,
     })
 
     childProcess.stdout.on('data', (chunk: Buffer) => {
@@ -260,25 +255,7 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
         return
       }
 
-      const text = chunk.toString()
-      const parsedObjects = parser.feed(text)
-      for (const parsedObject of parsedObjects) {
-        const result = parsePipelineRunResult(parsedObject)
-        if (!result) {
-          continue
-        }
-
-        this.setState(configKey, {
-          status: 'running',
-          profile,
-          lastResult: result,
-        })
-        this.outputChannel.appendLine(formatRunResultForOutput(result))
-      }
-
-      if (shouldAppendPlainOutput(text, parsedObjects.length, parser.isCollectingObject())) {
-        this.outputChannel.append(text)
-      }
+      this.outputChannel.append(chunk.toString())
     })
 
     childProcess.stderr.on('data', (chunk: Buffer) => {
@@ -295,10 +272,11 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
       }
 
       this.runningByConfig.delete(configKey)
+      const previousState = this.stateByConfig.get(configKey)
       this.setState(configKey, {
         status: 'error',
         profile,
-        lastResult: this.stateByConfig.get(configKey)?.lastResult,
+        lastExitCode: previousState?.lastExitCode,
         errorMessage: error.message,
       })
       vscode.window.showErrorMessage(`CI Runner failed to start: ${error.message}`)
@@ -312,22 +290,12 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
       this.runningByConfig.delete(configKey)
 
       const previousState = this.stateByConfig.get(configKey)
-      const previousResult = previousState?.lastResult
       if (this.terminatedRunIds.has(runId)) {
         this.terminatedRunIds.delete(runId)
         this.setState(configKey, {
-          status: previousResult ? (previousResult.exitCode === 0 ? 'passed' : 'failed') : 'idle',
+          status: 'stopped',
           profile,
-          lastResult: previousResult,
-        })
-        return
-      }
-
-      if (previousResult) {
-        this.setState(configKey, {
-          status: previousResult.exitCode === 0 ? 'passed' : 'failed',
-          profile,
-          lastResult: previousResult,
+          lastExitCode: previousState?.lastExitCode,
         })
         return
       }
@@ -336,7 +304,7 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
         this.setState(configKey, {
           status: code === 0 ? 'passed' : 'failed',
           profile,
-          lastResult: undefined,
+          lastExitCode: code,
         })
         return
       }
@@ -345,7 +313,7 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
       this.setState(configKey, {
         status: 'error',
         profile,
-        lastResult: undefined,
+        lastExitCode: previousState?.lastExitCode,
         errorMessage: `Process exited unexpectedly${signalSuffix}`,
       })
     })
@@ -585,22 +553,28 @@ const processEnv = (): NodeJS.ProcessEnv => {
 const formatConfigDescription = (state: ConfigState | undefined, preferred: boolean): string => {
   const preferredPrefix = preferred ? 'default' : ''
   if (!state) {
-    return preferredPrefix
+    return joinDescription(preferredPrefix, '🤷 no run yet')
   }
 
-  const summaryDescription = state.lastResult ? formatSummary(state.lastResult.summary) : ''
-
   if (state.status === 'running') {
-    const runningSuffix = state.profile === 'watch' ? 'watching' : 'running'
-    return joinDescription(preferredPrefix, runningSuffix, summaryDescription)
+    const runningSuffix = state.profile === 'watch' ? '🤷 watching' : '🤷 running'
+    return joinDescription(preferredPrefix, runningSuffix)
+  }
+
+  if (state.status === 'passed') {
+    return joinDescription(preferredPrefix, '✅ passed')
+  }
+
+  if (state.status === 'failed') {
+    return joinDescription(preferredPrefix, '❌ failed')
+  }
+
+  if (state.status === 'stopped') {
+    return joinDescription(preferredPrefix, '⚠️ stopped')
   }
 
   if (state.status === 'error') {
-    return joinDescription(preferredPrefix, 'error', state.errorMessage ?? '')
-  }
-
-  if (state.status === 'passed' || state.status === 'failed') {
-    return joinDescription(preferredPrefix, state.status, summaryDescription)
+    return joinDescription(preferredPrefix, '❗ error', state.errorMessage ?? '')
   }
 
   return preferredPrefix
@@ -608,56 +582,6 @@ const formatConfigDescription = (state: ConfigState | undefined, preferred: bool
 
 const joinDescription = (...parts: readonly string[]): string => {
   return parts.filter((part) => part.length > 0).join(' | ')
-}
-
-const formatSummary = (summary: PipelineRunResult['summary']): string => {
-  return `P:${summary.passed} F:${summary.failed} S:${summary.skipped} T:${summary.timedOut} (${summary.durationMs}ms)`
-}
-
-const formatRunResultForOutput = (result: PipelineRunResult): string => {
-  const statusLabel = result.exitCode === 0 ? 'PASSED' : 'FAILED'
-  const lines = [
-    `[Result] ${statusLabel} ${formatSummary(result.summary)}`,
-    ...result.steps.map((step) => {
-      const status = formatStepStatus(step.status)
-      const reason = step.reason ? ` | reason: ${step.reason}` : ''
-      return `  ${status} ${step.name} (${step.durationMs}ms${reason})`
-    }),
-  ]
-
-  return lines.join('\n')
-}
-
-const formatStepStatus = (status: PipelineRunResult['steps'][number]['status']): string => {
-  if (status === 'passed') {
-    return 'PASS'
-  }
-
-  if (status === 'failed') {
-    return 'FAIL'
-  }
-
-  if (status === 'timed_out') {
-    return 'TIME'
-  }
-
-  return 'SKIP'
-}
-
-const shouldAppendPlainOutput = (
-  chunk: string,
-  parsedObjectCount: number,
-  collectingJsonObject: boolean
-): boolean => {
-  if (parsedObjectCount > 0 || collectingJsonObject) {
-    return false
-  }
-
-  if (chunk.includes('{') || chunk.includes('}')) {
-    return false
-  }
-
-  return true
 }
 
 const selectConfigIcon = (state: ConfigState | undefined): vscode.ThemeIcon => {
@@ -671,6 +595,10 @@ const selectConfigIcon = (state: ConfigState | undefined): vscode.ThemeIcon => {
 
   if (state.status === 'passed') {
     return new vscode.ThemeIcon('check')
+  }
+
+  if (state.status === 'stopped') {
+    return new vscode.ThemeIcon('warning')
   }
 
   if (state.status === 'failed' || state.status === 'error') {
