@@ -465,7 +465,7 @@ const toTargetEntry = (
   label: string,
   description: string | undefined
 ): TargetEntry => {
-  const targetSuffix = targetId ? `target:${targetId}` : 'target:full'
+  const targetSuffix = targetId === undefined ? 'target:__implicit_full__' : `target:${targetId}`
   return {
     key: `${config.uri.toString()}::${targetSuffix}`,
     config,
