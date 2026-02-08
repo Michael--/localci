@@ -67,11 +67,29 @@ export interface CliConfigStep {
 }
 
 /**
+ * Named target that selects a subset of steps for execution.
+ */
+export interface CiRunnerTarget {
+  /** Stable target id used by CLI flags and integrations. */
+  readonly id: string
+  /** Display name shown in integrations. */
+  readonly name: string
+  /** Optional short details for UI rendering. */
+  readonly description?: string
+  /** Optional step id allow-list. */
+  readonly includeStepIds?: readonly string[]
+  /** Optional step id deny-list applied after include filtering. */
+  readonly excludeStepIds?: readonly string[]
+}
+
+/**
  * Top-level CLI config model.
  */
 export interface CiRunnerConfig {
   /** Ordered step list. */
   readonly steps: readonly CliConfigStep[]
+  /** Optional named subsets that can be selected via CLI/UI. */
+  readonly targets?: readonly CiRunnerTarget[]
   /** Continue running after hard failures when true. */
   readonly continueOnError?: boolean
   /** Base environment merged into all steps. */

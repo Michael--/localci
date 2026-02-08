@@ -89,6 +89,111 @@ describe('loadCiRunnerConfig', () => {
     expect(loaded.config.watch?.exclude).toEqual(['dist', '**/*.log'])
   })
 
+  it('loads named targets from config', async () => {
+    const directory = await mkdtemp(resolve(tmpdir(), 'ci-runner-cli-targets-'))
+    createdDirectories.push(directory)
+
+    await writeFile(
+      resolve(directory, 'ci.config.json'),
+      JSON.stringify({
+        steps: [
+          {
+            id: 'lint',
+            name: 'Lint',
+            command: 'pnpm run lint',
+          },
+          {
+            id: 'test',
+            name: 'Test',
+            command: 'pnpm run test',
+          },
+          {
+            id: 'build',
+            name: 'Build',
+            command: 'pnpm run build',
+          },
+        ],
+        targets: [
+          {
+            id: 'quick',
+            name: 'Quick Checks',
+            includeStepIds: ['lint', 'test'],
+          },
+          {
+            id: 'no-build',
+            name: 'Everything Without Build',
+            excludeStepIds: ['build'],
+          },
+        ],
+      }),
+      'utf8'
+    )
+
+    const loaded = await loadCiRunnerConfig(directory)
+
+    expect(loaded.config.targets).toEqual([
+      {
+        id: 'quick',
+        name: 'Quick Checks',
+        description: undefined,
+        includeStepIds: ['lint', 'test'],
+        excludeStepIds: undefined,
+      },
+      {
+        id: 'no-build',
+        name: 'Everything Without Build',
+        description: undefined,
+        includeStepIds: undefined,
+        excludeStepIds: ['build'],
+      },
+    ])
+  })
+
+  it('throws when target ids are duplicated', async () => {
+    const directory = await mkdtemp(resolve(tmpdir(), 'ci-runner-cli-targets-duplicate-'))
+    createdDirectories.push(directory)
+
+    await writeFile(
+      resolve(directory, 'ci.config.json'),
+      JSON.stringify({
+        steps: [{ id: 'lint', name: 'Lint', command: 'pnpm run lint' }],
+        targets: [
+          { id: 'quick', name: 'Quick' },
+          { id: 'quick', name: 'Quick Again' },
+        ],
+      }),
+      'utf8'
+    )
+
+    await expect(loadCiRunnerConfig(directory)).rejects.toThrow(
+      'targets must use unique ids (duplicate: quick)'
+    )
+  })
+
+  it('throws when targets reference unknown steps', async () => {
+    const directory = await mkdtemp(resolve(tmpdir(), 'ci-runner-cli-targets-unknown-'))
+    createdDirectories.push(directory)
+
+    await writeFile(
+      resolve(directory, 'ci.config.json'),
+      JSON.stringify({
+        steps: [{ id: 'lint', name: 'Lint', command: 'pnpm run lint' }],
+        targets: [
+          {
+            id: 'quick',
+            name: 'Quick',
+            includeStepIds: ['lint', 'missing-step'],
+          },
+        ],
+      }),
+      'utf8'
+    )
+
+    await expect(loadCiRunnerConfig(directory)).rejects.toThrow(
+      'targets[0].includeStepIds[1] references unknown step id: missing-step'
+    )
+  })
+
   it('throws for invalid watch exclude entries', async () => {
     const directory = await mkdtemp(resolve(tmpdir(), 'ci-runner-cli-watch-invalid-'))
     createdDirectories.push(directory)

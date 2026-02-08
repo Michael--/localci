@@ -3,6 +3,7 @@ export { getCliHelpText, parseCliOptions } from './cliOptions.js'
 
 export type {
   CiRunnerConfig,
+  CiRunnerTarget,
   CliConfigStep,
   CliOutputFormat,
   CliStepCondition,

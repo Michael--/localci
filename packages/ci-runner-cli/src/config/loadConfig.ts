@@ -5,7 +5,7 @@ import { pathToFileURL } from 'node:url'
 
 import ts from 'typescript'
 
-import type { CiRunnerConfig, CliConfigStep } from './types.js'
+import type { CiRunnerConfig, CiRunnerTarget, CliConfigStep } from './types.js'
 
 /**
  * Loads and validates a ci-runner config file.
@@ -134,6 +134,7 @@ const parseCiRunnerConfig = (value: unknown): CiRunnerConfig => {
   }
 
   const steps = stepsValue.map(parseConfigStep)
+  const targets = parseTargets(value.targets, steps)
 
   const continueOnError = parseOptionalBoolean(value.continueOnError, 'continueOnError')
   const env = parseOptionalStringRecord(value.env, 'env')
@@ -144,6 +145,7 @@ const parseCiRunnerConfig = (value: unknown): CiRunnerConfig => {
 
   return {
     steps,
+    targets,
     continueOnError,
     env,
     cwd,
@@ -201,6 +203,99 @@ const parseOutputConfig = (value: unknown): CiRunnerConfig['output'] | undefined
   return {
     format,
     verbose,
+  }
+}
+
+const parseTargets = (
+  value: unknown,
+  steps: readonly CliConfigStep[]
+): readonly CiRunnerTarget[] | undefined => {
+  if (value === undefined) {
+    return undefined
+  }
+
+  if (!Array.isArray(value)) {
+    throw new Error('targets must be an array')
+  }
+
+  const targets = value.map(parseTarget)
+  assertUniqueTargetIds(targets)
+  assertKnownTargetStepReferences(targets, steps)
+  return targets
+}
+
+const parseTarget = (value: unknown, index: number): CiRunnerTarget => {
+  if (!isRecord(value)) {
+    throw new Error(`targets[${index}] must be an object`)
+  }
+
+  const id = parseRequiredString(value.id, `targets[${index}].id`)
+  const name = parseRequiredString(value.name, `targets[${index}].name`)
+  const description = parseOptionalString(value.description, `targets[${index}].description`)
+  const includeStepIds = parseOptionalStringArray(
+    value.includeStepIds,
+    `targets[${index}].includeStepIds`
+  )
+  const excludeStepIds = parseOptionalStringArray(
+    value.excludeStepIds,
+    `targets[${index}].excludeStepIds`
+  )
+
+  return {
+    id,
+    name,
+    description,
+    includeStepIds,
+    excludeStepIds,
+  }
+}
+
+const assertUniqueTargetIds = (targets: readonly CiRunnerTarget[]): void => {
+  const seenById = new Set<string>()
+
+  for (const target of targets) {
+    if (seenById.has(target.id)) {
+      throw new Error(`targets must use unique ids (duplicate: ${target.id})`)
+    }
+
+    seenById.add(target.id)
+  }
+}
+
+const assertKnownTargetStepReferences = (
+  targets: readonly CiRunnerTarget[],
+  steps: readonly CliConfigStep[]
+): void => {
+  const knownStepIds = new Set(steps.map((step) => step.id))
+
+  for (const [targetIndex, target] of targets.entries()) {
+    if (target.includeStepIds) {
+      assertTargetStepArray(
+        knownStepIds,
+        target.includeStepIds,
+        `targets[${targetIndex}].includeStepIds`
+      )
+    }
+
+    if (target.excludeStepIds) {
+      assertTargetStepArray(
+        knownStepIds,
+        target.excludeStepIds,
+        `targets[${targetIndex}].excludeStepIds`
+      )
+    }
+  }
+}
+
+const assertTargetStepArray = (
+  knownStepIds: ReadonlySet<string>,
+  referencedStepIds: readonly string[],
+  path: string
+): void => {
+  for (const [index, stepId] of referencedStepIds.entries()) {
+    if (!knownStepIds.has(stepId)) {
+      throw new Error(`${path}[${index}] references unknown step id: ${stepId}`)
+    }
   }
 }
 

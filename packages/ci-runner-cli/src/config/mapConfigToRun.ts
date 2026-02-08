@@ -70,15 +70,17 @@ interface StepExclusion {
 export const mapConfigToRun = (
   config: CiRunnerConfig,
   cwd: string,
-  failFast: boolean
+  failFast: boolean,
+  targetId?: string
 ): MappedPipelineRunOptions => {
   const runCwd = config.cwd ? resolve(cwd, config.cwd) : cwd
   const env = { ...process.env, ...config.env }
+  const selectedSteps = selectTargetSteps(config, targetId)
 
   const steps: MappedPipelineStep[] = []
   const excludedSteps: ExcludedPipelineStep[] = []
 
-  for (const step of config.steps) {
+  for (const step of selectedSteps) {
     const exclusion = getExclusion(step, env)
     if (exclusion) {
       excludedSteps.push({
@@ -102,6 +104,28 @@ export const mapConfigToRun = (
     env,
     continueOnError,
   }
+}
+
+const selectTargetSteps = (config: CiRunnerConfig, targetId?: string): readonly CliConfigStep[] => {
+  if (!targetId) {
+    return config.steps
+  }
+
+  const target = config.targets?.find((entry) => entry.id === targetId)
+  if (!target) {
+    throw new Error(`Unknown target: ${targetId}`)
+  }
+
+  const includedStepIds = target.includeStepIds ? new Set(target.includeStepIds) : null
+  const excludedStepIds = new Set(target.excludeStepIds ?? [])
+
+  return config.steps.filter((step) => {
+    if (includedStepIds && !includedStepIds.has(step.id)) {
+      return false
+    }
+
+    return !excludedStepIds.has(step.id)
+  })
 }
 
 const mapStep = (step: CliConfigStep, runCwd: string): MappedPipelineStep => {

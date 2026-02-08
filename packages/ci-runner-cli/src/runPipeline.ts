@@ -24,6 +24,8 @@ export interface RunCliPipelineOptions {
   readonly cwd: string
   /** Optional explicit config path. */
   readonly configPath?: string
+  /** Optional selected target id from config. */
+  readonly target?: string
   /** Output format selection. */
   readonly format: CliOutputFormat
   /** Verbose output mode. */
@@ -52,7 +54,12 @@ export const runCliPipeline = async (options: RunCliPipelineOptions): Promise<nu
   const effectiveVerbose = loadedConfig.config.output?.verbose ?? options.verbose
 
   const execute = async (): Promise<PipelineRunResult> => {
-    const mappedRun = mapConfigToRun(loadedConfig.config, options.cwd, options.failFast)
+    const mappedRun = mapConfigToRun(
+      loadedConfig.config,
+      options.cwd,
+      options.failFast,
+      options.target
+    )
     printExcludedStepHints(mappedRun.excludedSteps, effectiveFormat)
     const parserRegistry = new StepParserRegistry(createDefaultStepParsers())
 

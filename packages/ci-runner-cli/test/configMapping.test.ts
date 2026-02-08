@@ -91,4 +91,49 @@ describe('mapConfigToRun', () => {
 
     expect(runConfig.continueOnError).toBe(false)
   })
+
+  it('maps only the selected target steps', () => {
+    const config: CiRunnerConfig = {
+      steps: [
+        {
+          id: 'lint',
+          name: 'Lint',
+          command: 'pnpm run lint',
+        },
+        {
+          id: 'test',
+          name: 'Test',
+          command: 'pnpm run test',
+        },
+        {
+          id: 'build',
+          name: 'Build',
+          command: 'pnpm run build',
+        },
+      ],
+      targets: [
+        {
+          id: 'quick',
+          name: 'Quick',
+          includeStepIds: ['lint', 'test'],
+          excludeStepIds: ['test'],
+        },
+      ],
+    }
+
+    const runConfig = mapConfigToRun(config, baseCwd, false, 'quick')
+
+    expect(runConfig.steps.map((step) => step.id)).toEqual(['lint'])
+  })
+
+  it('throws for unknown target id', () => {
+    const config: CiRunnerConfig = {
+      steps: [{ id: 'lint', name: 'Lint', command: 'pnpm run lint' }],
+      targets: [{ id: 'quick', name: 'Quick' }],
+    }
+
+    expect(() => mapConfigToRun(config, baseCwd, false, 'missing')).toThrow(
+      'Unknown target: missing'
+    )
+  })
 })

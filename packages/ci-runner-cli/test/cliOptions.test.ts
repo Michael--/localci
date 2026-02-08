@@ -8,13 +8,24 @@ describe('parseCliOptions', () => {
 
   it('parses explicit options', () => {
     const options = parseCliOptions(
-      ['--config', 'ci.config.ts', '--format', 'json', '--verbose', '--watch', '--fail-fast'],
+      [
+        '--config',
+        'ci.config.ts',
+        '--target',
+        'lint',
+        '--format',
+        'json',
+        '--verbose',
+        '--watch',
+        '--fail-fast',
+      ],
       baseCwd
     )
 
     expect(options).toEqual({
       cwd: baseCwd,
       configPath: 'ci.config.ts',
+      target: 'lint',
       format: 'json',
       verbose: true,
       watch: true,
@@ -25,12 +36,13 @@ describe('parseCliOptions', () => {
 
   it('supports equals syntax for config, format and cwd', () => {
     const options = parseCliOptions(
-      ['--config=ci.config.json', '--format=pretty', '--cwd=apps/api'],
+      ['--config=ci.config.json', '--target=smoke', '--format=pretty', '--cwd=apps/api'],
       baseCwd
     )
 
     expect(options.cwd).toBe(resolve(baseCwd, 'apps/api'))
     expect(options.configPath).toBe('ci.config.json')
+    expect(options.target).toBe('smoke')
     expect(options.format).toBe('pretty')
   })
 
@@ -43,5 +55,9 @@ describe('parseCliOptions', () => {
 
   it('throws for unknown options', () => {
     expect(() => parseCliOptions(['--unknown'], baseCwd)).toThrow('Unknown argument: --unknown')
+  })
+
+  it('throws when target value is missing', () => {
+    expect(() => parseCliOptions(['--target'], baseCwd)).toThrow('--target requires a value')
   })
 })

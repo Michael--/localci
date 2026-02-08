@@ -10,6 +10,8 @@ export interface CliOptions {
   readonly cwd: string
   /** Optional explicit config file path. */
   readonly configPath?: string
+  /** Optional target id selecting a subset of configured steps. */
+  readonly target?: string
   /** Selected output format. */
   readonly format: CliOutputFormat
   /** Emits full output for successful steps when true. */
@@ -32,6 +34,7 @@ export interface CliOptions {
  */
 export const parseCliOptions = (argv: readonly string[], baseCwd: string): CliOptions => {
   let configPath: string | undefined
+  let target: string | undefined
   let format: CliOutputFormat = 'pretty'
   let verbose = false
   let watch = false
@@ -102,6 +105,21 @@ export const parseCliOptions = (argv: readonly string[], baseCwd: string): CliOp
       continue
     }
 
+    if (argument === '--target') {
+      const nextValue = argv[index + 1]
+      if (!nextValue) {
+        throw new Error('--target requires a value')
+      }
+      target = nextValue
+      index += 1
+      continue
+    }
+
+    if (argument.startsWith('--target=')) {
+      target = argument.slice('--target='.length)
+      continue
+    }
+
     if (argument === '--cwd') {
       const nextValue = argv[index + 1]
       if (!nextValue) {
@@ -123,6 +141,7 @@ export const parseCliOptions = (argv: readonly string[], baseCwd: string): CliOp
   return {
     cwd,
     configPath,
+    target,
     format,
     verbose,
     watch,
@@ -142,6 +161,7 @@ export const getCliHelpText = (): string => {
     '',
     'Options:',
     '  --config <path>     Config file path (default: ci.config.ts or ci.config.json)',
+    '  --target <id>       Run only the selected target id from config',
     '  --format <type>     Output format: pretty | json (default: pretty)',
     '  --verbose           Show stdout/stderr for successful steps',
     '  --watch             Re-run on file changes',
