@@ -1,0 +1,4 @@
+{
+  "ciRunner.defaultConfigPath": "ci.config.json",
+  "ciRunner.defaultRunProfile": "standard"
+}

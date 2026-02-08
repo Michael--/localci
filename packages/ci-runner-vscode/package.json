@@ -101,6 +101,9 @@
     "build": "vite build --config vite.config.ts && tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint \"src/**/*.ts\" \"test/**/*.ts\"",
-    "test": "vitest run --config vitest.config.ts"
+    "test": "vitest run --config vitest.config.ts",
+    "preview": "pnpm -C ../.. run vscode:preview",
+    "preview:fast": "pnpm -C ../.. run vscode:preview:fast",
+    "preview:reuse": "pnpm -C ../.. run vscode:preview:reuse"
   }
 }

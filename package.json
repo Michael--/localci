@@ -26,7 +26,11 @@
     "release:clean": "node -e \"require('node:fs').rmSync('.artifacts', { recursive: true, force: true })\"",
     "release:pack": "pnpm --filter @number10/ci-runner-cli pack --pack-destination .artifacts/packs",
     "release:dry-run": "pnpm run release:clean && pnpm run check:release && pnpm run release:pack",
-    "docs:build": "pnpm -C docs-site build"
+    "docs:build": "pnpm -C docs-site build",
+    "vscode:build-preview": "pnpm --filter @number10/ci-runner-cli run build && pnpm --filter @number10/ci-runner-vscode run build",
+    "vscode:preview": "pnpm run vscode:build-preview && pnpm run vscode:preview:fast",
+    "vscode:preview:fast": "sh -c 'ROOT=\"$(pwd)\"; EXT=\"$ROOT/packages/ci-runner-vscode\"; if command -v code >/dev/null 2>&1; then code --extensionDevelopmentPath=\"$EXT\" \"$ROOT\"; else open -na \"Visual Studio Code\" --args --extensionDevelopmentPath=\"$EXT\" \"$ROOT\"; fi'",
+    "vscode:preview:reuse": "sh -c 'ROOT=\"$(pwd)\"; EXT=\"$ROOT/packages/ci-runner-vscode\"; if command -v code >/dev/null 2>&1; then code --reuse-window --extensionDevelopmentPath=\"$EXT\" \"$ROOT\"; else open -na \"Visual Studio Code\" --args --extensionDevelopmentPath=\"$EXT\" \"$ROOT\"; fi'"
   },
   "keywords": [
     "electron",
