@@ -11,6 +11,7 @@
 - [x] Internal runtime implemented and validated.
 - [x] CLI implemented with typed config, pretty/json output, watch mode, fail-fast, retries, and timeouts.
 - [x] Smoke and integration tests centered on external CLI usage.
+- [x] Watch mode hardened with runtime watcher fallback and smoke coverage.
 - [x] Release dry-run workflow and packaging in place for the CLI package.
 - [x] Initial npm publish is pending.
 

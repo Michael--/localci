@@ -151,6 +151,13 @@ export default config
 - `--cwd <path>` Base working directory.
 - `-h, --help` Show usage help.
 
+## Watch Mode
+
+- Runs the pipeline once, then watches the selected `--cwd` recursively for changes.
+- Debounces rapid events and queues one rerun while a run is active.
+- Stops cleanly on `SIGINT`/`SIGTERM` (for example `Ctrl+C`).
+- Falls back to a single run when recursive watch is unavailable or the watcher fails at runtime (for example `EMFILE` limits).
+
 ## Step Controls
 
 - `enabled` (default `true`): temporarily disable a step without removing it.

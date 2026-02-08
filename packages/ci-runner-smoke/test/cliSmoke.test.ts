@@ -1,5 +1,5 @@
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
-import { spawn } from 'node:child_process'
+import { spawn, type ChildProcess } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { resolve } from 'node:path'
 
@@ -300,6 +300,113 @@ describe('ci-runner-cli smoke', () => {
     expect(stdout).toContain('ci-runner: executing 1 steps')
     expect(stdout).toContain('Summary: total=1 passed=1 skipped=0 failed=0 timedOut=0')
   })
+
+  it('re-runs once after a file change in watch mode and exits cleanly', async () => {
+    const watchDirectory = await mkdtemp(resolve(tmpdir(), 'ci-runner-cli-watch-'))
+    createdDirectories.push(watchDirectory)
+
+    const configFilePath = resolve(watchDirectory, 'ci.config.json')
+    const triggerFilePath = resolve(watchDirectory, 'trigger.txt')
+    await writeFile(
+      configFilePath,
+      JSON.stringify(
+        {
+          steps: [
+            {
+              id: 'prepare',
+              name: 'Prepare',
+              command: `node ${JSON.stringify(resolve(stubsRoot, 'prepare-step.cjs'))}`,
+            },
+          ],
+        },
+        null,
+        2
+      ),
+      'utf8'
+    )
+
+    const child = spawn(
+      process.execPath,
+      [
+        cliEntryPath,
+        '--config',
+        configFilePath,
+        '--cwd',
+        watchDirectory,
+        '--watch',
+        '--format',
+        'pretty',
+      ],
+      {
+        cwd: workspaceRoot,
+        env: { ...process.env },
+        stdio: ['ignore', 'pipe', 'pipe'],
+      }
+    )
+
+    let stdout = ''
+    let stderr = ''
+    child.stdout.on('data', (chunk: Buffer) => {
+      stdout += chunk.toString('utf8')
+    })
+    child.stderr.on('data', (chunk: Buffer) => {
+      stderr += chunk.toString('utf8')
+    })
+
+    try {
+      await waitForCondition(() => {
+        const plainOutput = stripAnsi(`${stdout}\n${stderr}`)
+        return (
+          plainOutput.includes('Watch mode enabled. Waiting for file changes...') ||
+          hasWatchFallbackMessage(plainOutput) ||
+          child.exitCode !== null
+        )
+      }, 8000)
+
+      const firstOutputSnapshot = stripAnsi(`${stdout}\n${stderr}`)
+      if (hasWatchFallbackMessage(firstOutputSnapshot) || child.exitCode !== null) {
+        const unsupportedExitCode = await waitForChildExit(child)
+        expect(unsupportedExitCode).toBe(0)
+        expect(
+          countOccurrences(stripAnsi(stdout), 'ci-runner: executing 1 steps')
+        ).toBeGreaterThanOrEqual(1)
+        return
+      }
+
+      await writeFile(triggerFilePath, `${Date.now()}`, 'utf8')
+      await waitForCondition(() => {
+        const plainOutput = stripAnsi(`${stdout}\n${stderr}`)
+        const executionCount = countOccurrences(plainOutput, 'ci-runner: executing 1 steps')
+        return (
+          executionCount >= 2 || hasWatchFallbackMessage(plainOutput) || child.exitCode !== null
+        )
+      }, 8000)
+
+      const plainStdout = stripAnsi(stdout)
+      const plainCombinedOutput = stripAnsi(`${stdout}\n${stderr}`)
+      if (hasWatchFallbackMessage(plainCombinedOutput) || child.exitCode !== null) {
+        const fallbackExitCode = await waitForChildExit(child)
+        expect(fallbackExitCode).toBe(0)
+        expect(
+          countOccurrences(plainStdout, 'ci-runner: executing 1 steps')
+        ).toBeGreaterThanOrEqual(1)
+        return
+      }
+
+      child.kill('SIGTERM')
+      const exitCode = await waitForChildExit(child)
+      expect(exitCode).toBe(0)
+      expect(stderr).toBe('')
+      expect(countOccurrences(plainStdout, 'ci-runner: executing 1 steps')).toBeGreaterThanOrEqual(
+        2
+      )
+    } finally {
+      if (child.exitCode === null && child.signalCode === null) {
+        child.kill('SIGTERM')
+        await waitForChildExit(child)
+      }
+    }
+  }, 20000)
 })
 
 const writeSmokeConfig = async (steps: readonly SmokeConfigStep[]): Promise<string> => {
@@ -357,6 +464,51 @@ const runCli = async (args: readonly string[]): Promise<CliRunResult> => {
       })
     })
   })
+}
+
+const waitForCondition = async (condition: () => boolean, timeoutMs: number): Promise<void> => {
+  const startedAt = Date.now()
+  while (Date.now() - startedAt <= timeoutMs) {
+    if (condition()) {
+      return
+    }
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 50)
+    })
+  }
+
+  throw new Error('Timed out while waiting for expected watch output')
+}
+
+const waitForChildExit = async (child: ChildProcess): Promise<number | null> => {
+  if (child.exitCode !== null || child.signalCode !== null) {
+    return child.exitCode
+  }
+
+  return await new Promise<number | null>((resolvePromise, rejectPromise) => {
+    child.once('error', (error: Error) => {
+      rejectPromise(error)
+    })
+
+    child.once('close', (exitCode: number | null) => {
+      resolvePromise(exitCode)
+    })
+  })
+}
+
+const countOccurrences = (text: string, search: string): number => {
+  if (search.length === 0) {
+    return 0
+  }
+
+  return text.split(search).length - 1
+}
+
+const hasWatchFallbackMessage = (output: string): boolean => {
+  return (
+    output.includes('Watch mode is not supported recursively on this platform.') ||
+    output.includes('Watch mode stopped (')
+  )
 }
 
 const stripAnsi = (value: string): string => {

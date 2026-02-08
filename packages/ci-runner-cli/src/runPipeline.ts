@@ -33,6 +33,12 @@ export interface RunCliPipelineOptions {
   readonly watch: boolean
 }
 
+interface WatchController {
+  readonly supported: boolean
+  close: () => void
+  onError: (listener: (error: Error) => void) => void
+}
+
 /**
  * Executes the pipeline according to CLI options.
  *
@@ -156,13 +162,29 @@ const runWatchLoop = async (
   }
 
   await new Promise<void>((resolve) => {
+    let finished = false
+
     const stop = (): void => {
+      if (finished) {
+        return
+      }
+      finished = true
+
+      process.off('SIGINT', stop)
+      process.off('SIGTERM', stop)
       watcher.close()
       if (debounceHandle) {
         clearTimeout(debounceHandle)
       }
       resolve()
     }
+
+    watcher.onError((watchError: Error) => {
+      process.stderr.write(
+        `Watch mode stopped (${formatWatchErrorMessage(watchError)}). Running once without watch.\n`
+      )
+      stop()
+    })
 
     process.on('SIGINT', stop)
     process.on('SIGTERM', stop)
@@ -175,7 +197,7 @@ const createWatcher = (
   cwd: string,
   configFilePath: string,
   onRelevantChange: () => void
-): { close: () => void; supported: boolean } => {
+): WatchController => {
   const ignorePrefixes = ['node_modules', '.git', 'dist', 'coverage', 'out', 'build', '.tmp']
 
   try {
@@ -200,6 +222,9 @@ const createWatcher = (
     return {
       close: (): void => watcher.close(),
       supported: true,
+      onError: (listener: (error: Error) => void): void => {
+        watcher.on('error', listener)
+      },
     }
   } catch {
     process.stdout.write(
@@ -209,6 +234,7 @@ const createWatcher = (
     return {
       close: (): void => undefined,
       supported: false,
+      onError: (): void => undefined,
     }
   }
 }
@@ -222,4 +248,9 @@ const shouldIgnore = (filePath: string, prefixes: readonly string[]): boolean =>
 
 const normalizePathForComparison = (filePath: string): string => {
   return filePath.replaceAll('\\', '/')
+}
+
+const formatWatchErrorMessage = (error: Error): string => {
+  const withCode = error as NodeJS.ErrnoException
+  return typeof withCode.code === 'string' ? `${withCode.code}: ${error.message}` : error.message
 }
