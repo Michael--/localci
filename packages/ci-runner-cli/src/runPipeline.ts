@@ -151,6 +151,9 @@ const runWatchLoop = async (
       void runWithLock()
     }, 250)
   })
+  if (!watcher.supported) {
+    return initialResult.exitCode
+  }
 
   await new Promise<void>((resolve) => {
     const stop = (): void => {
@@ -172,7 +175,7 @@ const createWatcher = (
   cwd: string,
   configFilePath: string,
   onRelevantChange: () => void
-): { close: () => void } => {
+): { close: () => void; supported: boolean } => {
   const ignorePrefixes = ['node_modules', '.git', 'dist', 'coverage', 'out', 'build', '.tmp']
 
   try {
@@ -186,15 +189,17 @@ const createWatcher = (
         return
       }
 
-      const normalizedConfigPath = relative(cwd, configFilePath)
+      const normalizedConfigPath = normalizePathForComparison(relative(cwd, configFilePath))
+      const normalizedRelativePath = normalizePathForComparison(relativePath)
       const messagePath =
-        relativePath === normalizedConfigPath ? `${relativePath} (config)` : relativePath
+        normalizedRelativePath === normalizedConfigPath ? `${relativePath} (config)` : relativePath
       process.stdout.write(`\nChange detected: ${messagePath}\n`)
       onRelevantChange()
     })
 
     return {
       close: (): void => watcher.close(),
+      supported: true,
     }
   } catch {
     process.stdout.write(
@@ -203,10 +208,18 @@ const createWatcher = (
 
     return {
       close: (): void => undefined,
+      supported: false,
     }
   }
 }
 
 const shouldIgnore = (filePath: string, prefixes: readonly string[]): boolean => {
-  return prefixes.some((prefix) => filePath === prefix || filePath.startsWith(`${prefix}/`))
+  const normalizedPath = normalizePathForComparison(filePath)
+  return prefixes.some(
+    (prefix) => normalizedPath === prefix || normalizedPath.startsWith(`${prefix}/`)
+  )
+}
+
+const normalizePathForComparison = (filePath: string): string => {
+  return filePath.replaceAll('\\', '/')
 }

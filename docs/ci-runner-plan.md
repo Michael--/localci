@@ -12,7 +12,7 @@
 - [x] CLI implemented with typed config, pretty/json output, watch mode, fail-fast, retries, and timeouts.
 - [x] Smoke and integration tests centered on external CLI usage.
 - [x] Release dry-run workflow and packaging in place for the CLI package.
-- [ ] Initial npm publish is pending.
+- [x] Initial npm publish is pending.
 
 ## Strategic Decisions
 
@@ -24,10 +24,10 @@
 
 ### P0: Release-critical
 
-- [ ] Finalize public scope and naming strategy.
+- [x] Finalize public scope and naming strategy.
 - [ ] Define compatibility target (Node LTS range and OS matrix).
-- [ ] Run validation in at least 2 external repositories.
-- [ ] Publish first version of `@number10/ci-runner-cli`.
+- [x] Run validation in at least 2 external repositories.
+- [x] Publish first version of `@number10/ci-runner-cli`.
 
 ### P1: Adoption and CI ecosystem
 

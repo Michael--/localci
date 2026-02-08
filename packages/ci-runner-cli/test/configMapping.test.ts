@@ -1,9 +1,12 @@
+import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { mapConfigToRun } from '../src/config/mapConfigToRun.js'
 import type { CiRunnerConfig } from '../src/config/types.js'
 
 describe('mapConfigToRun', () => {
+  const baseCwd = resolve('repo')
+
   it('filters conditional steps and resolves cwd paths', () => {
     const config: CiRunnerConfig = {
       cwd: 'workspace',
@@ -33,9 +36,9 @@ describe('mapConfigToRun', () => {
       ],
     }
 
-    const runConfig = mapConfigToRun(config, '/repo', false)
+    const runConfig = mapConfigToRun(config, baseCwd, false)
 
-    expect(runConfig.cwd).toBe('/repo/workspace')
+    expect(runConfig.cwd).toBe(resolve(baseCwd, 'workspace'))
     expect(runConfig.steps.map((step) => step.id)).toEqual(['always'])
     expect(runConfig.excludedSteps).toEqual([
       {
@@ -66,7 +69,7 @@ describe('mapConfigToRun', () => {
       ],
     }
 
-    const runConfig = mapConfigToRun(config, '/repo', false)
+    const runConfig = mapConfigToRun(config, baseCwd, false)
 
     expect(runConfig.steps.map((step) => step.id)).toEqual(['default-enabled'])
     expect(runConfig.excludedSteps).toHaveLength(0)
@@ -84,7 +87,7 @@ describe('mapConfigToRun', () => {
       ],
     }
 
-    const runConfig = mapConfigToRun(config, '/repo', true)
+    const runConfig = mapConfigToRun(config, baseCwd, true)
 
     expect(runConfig.continueOnError).toBe(false)
   })
