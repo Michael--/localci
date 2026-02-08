@@ -236,6 +236,7 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
     if (this.runningByEntry.has(entry.key)) {
       this.stopEntryInternal(entry.key, 'Restarting existing run.')
     }
+    this.stopSiblingRunsForConfig(entry)
 
     this.outputChannel.show(true)
     this.outputChannel.appendLine(
@@ -374,6 +375,21 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
     this.terminatedRunIds.add(running.runId)
     this.outputChannel.appendLine(reason)
     running.child.kill('SIGTERM')
+  }
+
+  private stopSiblingRunsForConfig(entry: TargetEntry): void {
+    const configPrefix = `${entry.config.uri.toString()}::`
+
+    for (const runningEntryKey of this.runningByEntry.keys()) {
+      if (runningEntryKey === entry.key || !runningEntryKey.startsWith(configPrefix)) {
+        continue
+      }
+
+      this.stopEntryInternal(
+        runningEntryKey,
+        `Stopped because another target from ${entry.config.relativePath} started.`
+      )
+    }
   }
 
   private setState(configKey: string, state: ConfigState): void {
