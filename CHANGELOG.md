@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 The format follows Keep a Changelog principles and uses semantic versioning for published artifacts.
 
+## [0.2.1] - 2026-02-09
+
+### Changed
+
+- CLI README now highlights the official VS Code extension and links directly to the Marketplace listing for a better local user experience.
+
 ## [0.2.0] - 2026-02-09
 
 ### Added
