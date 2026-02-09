@@ -8,7 +8,7 @@ LocalCI provides a typed, config-driven runner to execute linting, tests, and bu
 
 - `@number10/ci-runner-cli`: Public CLI package (`ci-runner`) with typed config support.
 - `@number10/ci-runner-smoke`: Internal smoke and integration validation package.
-- `@number10/ci-runner-vscode`: VS Code extension for running targets from the sidebar.
+- `ci-runner-vscode`: VS Code extension for running targets from the sidebar.
 
 ## Requirements
 

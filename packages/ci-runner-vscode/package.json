@@ -1,5 +1,5 @@
 {
-  "name": "@number10/ci-runner-vscode",
+  "name": "ci-runner-vscode",
   "version": "0.2.0",
   "private": true,
   "description": "VS Code extension for ci-runner CLI.",
@@ -139,7 +139,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint \"src/**/*.ts\" \"test/**/*.ts\"",
     "test": "vitest run",
-    "package": "pnpm run build && pnpm dlx @vscode/vsce package",
+    "package": "pnpm run build && pnpm dlx @vscode/vsce package --allow-package-all-secrets --allow-package-env-file",
     "preview": "pnpm -C ../.. run vscode:preview",
     "preview:fast": "pnpm -C ../.. run vscode:preview:fast",
     "preview:reuse": "pnpm -C ../.. run vscode:preview:reuse"

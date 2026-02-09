@@ -1,4 +1,4 @@
-# @number10/ci-runner-vscode
+# ci-runner-vscode
 
 VS Code extension for running `ci-runner` targets directly from the Explorer sidebar.
 
@@ -41,8 +41,8 @@ From repository root:
 
 ```bash
 pnpm --filter @number10/ci-runner-cli run build
-pnpm --filter @number10/ci-runner-vscode run build
-pnpm --filter @number10/ci-runner-vscode run test
+pnpm --filter ci-runner-vscode run build
+pnpm --filter ci-runner-vscode run test
 ```
 
 Open extension host preview:
@@ -54,7 +54,7 @@ pnpm run vscode:preview
 Build a local extension package (`.vsix`) without publishing:
 
 ```bash
-pnpm --filter @number10/ci-runner-vscode run package
+pnpm --filter ci-runner-vscode run package
 ```
 
 ## Publish to Visual Studio Marketplace
