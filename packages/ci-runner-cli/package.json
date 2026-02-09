@@ -23,10 +23,10 @@
   ],
   "scripts": {
     "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
-    "build": "vite build --config vite.config.ts && tsc -p tsconfig.build.json",
+    "build": "vite build && tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint \"src/**/*.ts\" \"test/**/*.ts\"",
-    "test": "vitest run --config vitest.config.ts"
+    "test": "vitest run"
   },
   "dependencies": {
     "typescript": "^5.9.3"

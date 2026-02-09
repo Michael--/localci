@@ -10,7 +10,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "pretest": "pnpm --filter @number10/ci-runner-cli run build",
     "lint": "eslint \"test/**/*.ts\"",
-    "test": "vitest run --config vitest.config.ts",
+    "test": "vitest run",
     "pretest:integration": "pnpm --filter @number10/ci-runner-cli run build",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "presmoke:json": "pnpm --filter @number10/ci-runner-cli run build",
@@ -19,11 +19,11 @@
     "presmoke:cli:pretty:optional": "pnpm --filter @number10/ci-runner-cli run build",
     "presmoke:cli:pretty:typed": "pnpm --filter @number10/ci-runner-cli run build",
     "smoke": "pnpm run smoke:json",
-    "smoke:json": "node --enable-source-maps ../ci-runner-cli/dist/cli.js --config smoke/cli.pretty.pass.config.json --cwd . --format json",
-    "smoke:timeout": "node --enable-source-maps ../ci-runner-cli/dist/cli.js --config smoke/cli.timeout.config.json --cwd . --format json",
-    "smoke:cli:pretty": "node --enable-source-maps ../ci-runner-cli/dist/cli.js --config smoke/cli.pretty.pass.config.json --cwd . --format pretty",
-    "smoke:cli:pretty:optional": "node --enable-source-maps ../ci-runner-cli/dist/cli.js --config smoke/cli.pretty.optional.config.json --cwd . --format pretty",
-    "smoke:cli:pretty:typed": "node --enable-source-maps ../ci-runner-cli/dist/cli.js --config smoke/cli.pretty.typed.config.ts --cwd . --format pretty"
+    "smoke:json": "node --enable-source-maps ../ci-runner-cli/dist/cli.js --config smoke/cli.pretty.pass.config.json --format json",
+    "smoke:timeout": "node --enable-source-maps ../ci-runner-cli/dist/cli.js --config smoke/cli.timeout.config.json --format json",
+    "smoke:cli:pretty": "node --enable-source-maps ../ci-runner-cli/dist/cli.js --config smoke/cli.pretty.pass.config.json",
+    "smoke:cli:pretty:optional": "node --enable-source-maps ../ci-runner-cli/dist/cli.js --config smoke/cli.pretty.optional.config.json",
+    "smoke:cli:pretty:typed": "node --enable-source-maps ../ci-runner-cli/dist/cli.js --config smoke/cli.pretty.typed.config.ts"
   },
   "devDependencies": {
     "@number10/ci-runner-cli": "workspace:*"

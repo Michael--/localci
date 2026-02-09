@@ -1,12 +1,73 @@
 {
   "watch": {
-    "exclude": ["packages/ci-runner-cli/dist/**", "packages/ci-runner-cli/node_modules/**"]
+    "exclude": [
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/coverage/**",
+      "**/.git/**",
+      ".artifacts/**",
+      "docs-site/dist/**"
+    ]
+  },
+  "output": {
+    "format": "pretty"
   },
   "steps": [
+    {
+      "id": "lint",
+      "name": "Lint Workspace",
+      "command": "pnpm run lint"
+    },
     {
       "id": "typecheck",
       "name": "Typecheck Workspace",
       "command": "pnpm run typecheck"
+    },
+    {
+      "id": "test",
+      "name": "Test Workspace",
+      "command": "pnpm run test"
+    },
+    {
+      "id": "build",
+      "name": "Build Workspace",
+      "command": "pnpm run build"
+    },
+    {
+      "id": "smoke",
+      "name": "Smoke Checks",
+      "command": "pnpm run smoke"
+    },
+    {
+      "id": "integration",
+      "name": "Integration Tests",
+      "command": "pnpm run test:integration"
+    }
+  ],
+  "targets": [
+    {
+      "id": "quick",
+      "name": "Quick Checks",
+      "description": "Run lint and typecheck only.",
+      "includeStepIds": ["lint", "typecheck"]
+    },
+    {
+      "id": "check",
+      "name": "Workspace Check",
+      "description": "Run lint, typecheck, tests, and build.",
+      "includeStepIds": ["lint", "typecheck", "test", "build"]
+    },
+    {
+      "id": "ci",
+      "name": "CI Validation",
+      "description": "Run workspace check and smoke validation.",
+      "includeStepIds": ["lint", "typecheck", "test", "build", "smoke"]
+    },
+    {
+      "id": "release",
+      "name": "Release Gate",
+      "description": "Run full CI validation including integration tests.",
+      "includeStepIds": ["lint", "typecheck", "test", "build", "smoke", "integration"]
     }
   ]
 }
