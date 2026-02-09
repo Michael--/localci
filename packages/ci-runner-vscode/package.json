@@ -139,6 +139,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint \"src/**/*.ts\" \"test/**/*.ts\"",
     "test": "vitest run",
+    "package": "pnpm run build && pnpm dlx @vscode/vsce package",
     "preview": "pnpm -C ../.. run vscode:preview",
     "preview:fast": "pnpm -C ../.. run vscode:preview:fast",
     "preview:reuse": "pnpm -C ../.. run vscode:preview:reuse"

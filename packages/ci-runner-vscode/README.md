@@ -51,6 +51,12 @@ Open extension host preview:
 pnpm run vscode:preview
 ```
 
+Build a local extension package (`.vsix`) without publishing:
+
+```bash
+pnpm --filter @number10/ci-runner-vscode run package
+```
+
 ## Publish to Visual Studio Marketplace
 
 1. Create a publisher in the [Visual Studio Marketplace Management Portal](https://marketplace.visualstudio.com/manage).
