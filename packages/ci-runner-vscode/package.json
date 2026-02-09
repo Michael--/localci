@@ -10,6 +10,12 @@
   "bugs": {
     "email": "mr@number10.de"
   },
+  "files": [
+    "dist/extension.js",
+    "media/**",
+    "README.md",
+    "LICENSE"
+  ],
   "icon": "media/ci-runner.png",
   "main": "./dist/extension.js",
   "engines": {
@@ -125,7 +131,12 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint \"src/**/*.ts\" \"test/**/*.ts\"",
     "test": "vitest run",
-    "package": "pnpm run build && pnpm dlx @vscode/vsce package --allow-package-all-secrets --allow-package-env-file",
+    "package": "pnpm run package:local",
+    "package:local": "pnpm run build && pnpm dlx @vscode/vsce package --allow-package-all-secrets --allow-package-env-file",
+    "package:release": "pnpm run build && pnpm dlx @vscode/vsce package",
+    "publish": "pnpm run publish:release",
+    "publish:local": "pnpm run build && pnpm dlx @vscode/vsce publish --allow-package-all-secrets --allow-package-env-file",
+    "publish:release": "pnpm run build && pnpm dlx @vscode/vsce publish",
     "preview": "pnpm -C ../.. run vscode:preview",
     "preview:fast": "pnpm -C ../.. run vscode:preview:fast",
     "preview:reuse": "pnpm -C ../.. run vscode:preview:reuse"
