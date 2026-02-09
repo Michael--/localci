@@ -27,6 +27,14 @@ Most CI scripts start simple and become fragile over time:
 pnpm add -D @number10/ci-runner-cli
 ```
 
+## VS Code Extension (Recommended)
+
+For the best local workflow, use the official VS Code extension:
+
+- [CI Runner for VS Code](https://marketplace.visualstudio.com/items?itemName=number10.ci-runner-vscode)
+
+It provides a more streamlined experience to discover and run `ci-runner` targets directly from the editor.
+
 ## Usage
 
 ```bash
