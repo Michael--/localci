@@ -5,6 +5,10 @@
   "description": "VS Code extension for ci-runner CLI.",
   "displayName": "CI Runner",
   "publisher": "number10",
+  "homepage": "https://www.npmjs.com/package/@number10/ci-runner-cli",
+  "bugs": {
+    "email": "mr@number10.de"
+  },
   "icon": "media/ci-runner.png",
   "main": "./dist/extension.js",
   "engines": {
@@ -13,6 +17,7 @@
     "pnpm": ">=10.28.1"
   },
   "categories": [
+    "Testing",
     "Other"
   ],
   "contributes": {
