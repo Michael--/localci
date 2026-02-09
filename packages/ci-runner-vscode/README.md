@@ -2,6 +2,15 @@
 
 Run `ci-runner` configs and named targets from the VS Code Explorer.
 
+## Why It Helps in Monorepos
+
+Large monorepos usually expose many npm scripts, and the full scripts list can become noisy for daily work.
+CI Runner provides a focused, curated list of frequent workflows through named `targets` in `ci.config.ts` or `ci.config.json`.
+This can reduce how often you need to open the `NPM Scripts` view.
+
+CI Runner is not a replacement for npm scripts.
+All scripts remain available and continue to be the execution backend.
+
 ## Features
 
 - Detects `ci.config.json` and `ci.config.ts` in workspace folders.

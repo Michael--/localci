@@ -172,6 +172,9 @@ export default config
 
 Use `targets` to expose reusable subsets without duplicating step definitions:
 
+In large monorepos, targets are useful for defining a small set of frequent workflows so developers do not need to navigate long script lists each time.
+Targets complement existing scripts; they do not replace them.
+
 - `includeStepIds`: allow-list of steps.
 - `excludeStepIds`: deny-list applied after include filtering.
 
