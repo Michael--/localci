@@ -767,20 +767,6 @@ const getDefaultRunProfile = (workspaceFolder: vscode.WorkspaceFolder): RunProfi
 const resolveCliLaunch = async (
   workspaceFolder: vscode.WorkspaceFolder
 ): Promise<LaunchCommand> => {
-  const localCliScriptPath = join(
-    workspaceFolder.uri.fsPath,
-    'packages',
-    'ci-runner-cli',
-    'dist',
-    'cli.js'
-  )
-  if (await fileExists(localCliScriptPath)) {
-    return {
-      command: process.execPath,
-      baseArgs: [localCliScriptPath],
-    }
-  }
-
   const localBinaryPath = join(
     workspaceFolder.uri.fsPath,
     'node_modules',
@@ -795,10 +781,40 @@ const resolveCliLaunch = async (
     }
   }
 
+  const localCliScriptPath = join(
+    workspaceFolder.uri.fsPath,
+    'packages',
+    'ci-runner-cli',
+    'dist',
+    'cli.js'
+  )
+  if (await fileExists(localCliScriptPath)) {
+    return {
+      command: resolveNodeCommand(),
+      baseArgs: [localCliScriptPath],
+    }
+  }
+
   return {
     command: process.platform === 'win32' ? 'ci-runner.cmd' : 'ci-runner',
     baseArgs: [],
   }
+}
+
+const resolveNodeCommand = (): string => {
+  const vscodeNodePath = process.env.VSCODE_NODE_PATH
+  if (typeof vscodeNodePath === 'string' && vscodeNodePath.length > 0) {
+    return vscodeNodePath
+  }
+
+  const normalizedExecPath = process.execPath.toLowerCase()
+  const usesNodeExecutable =
+    normalizedExecPath.endsWith('/node') || normalizedExecPath.endsWith('\\node.exe')
+  if (usesNodeExecutable) {
+    return process.execPath
+  }
+
+  return process.platform === 'win32' ? 'node.exe' : 'node'
 }
 
 const processEnv = (): NodeJS.ProcessEnv => {
