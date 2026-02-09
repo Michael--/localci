@@ -187,6 +187,19 @@ List configured targets for editor integrations:
 ci-runner --list-targets --format json
 ```
 
+Sample output shape:
+
+```json
+{
+  "targets": [
+    { "id": "quick", "name": "Quick Checks" },
+    { "id": "full", "name": "Full Pipeline" }
+  ]
+}
+```
+
+The command exits after discovery and does not execute any step commands.
+
 ## Watch Mode
 
 - Runs the pipeline once, then watches the selected `--cwd` recursively for changes.
@@ -204,6 +217,14 @@ Use config-level exclusions when needed:
   }
 }
 ```
+
+## Run Profiles
+
+- `standard`: single run without watch mode.
+- `watch`: continuous reruns on file changes.
+- `fail-fast`: stop immediately on the first hard failure.
+
+Profiles are command-line presets often used by integrations (for example the VS Code extension).
 
 ## Step Controls
 

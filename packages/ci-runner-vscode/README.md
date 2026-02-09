@@ -9,6 +9,32 @@ VS Code extension for running `ci-runner` targets directly from the Explorer sid
 - Streams run output to the `CI Runner` output channel.
 - Supports stop actions per target and for all active runs.
 
+## Quickstart
+
+1. Install `@number10/ci-runner-cli` in your workspace.
+2. Open the workspace in VS Code.
+3. Open the Explorer and find the `CI Runner` view.
+4. Run `Refresh` from the view title if configs are not listed yet.
+5. Use the inline run icon on a target or config node.
+
+The extension executes `ci-runner` from your workspace context and forwards output to the `CI Runner` output panel.
+
+## Commands
+
+- `CI Runner: Refresh`
+- `CI Runner: Run Config`
+- `CI Runner: Run Config (Watch)`
+- `CI Runner: Run Config (Fail Fast)`
+- `CI Runner: Run Config (Default Profile)`
+- `CI Runner: Stop Config Run`
+- `CI Runner: Stop All Runs`
+- `CI Runner: Open Output`
+
+## Settings
+
+- `ciRunner.defaultConfigPath`: preferred relative config path shown first in the view.
+- `ciRunner.defaultRunProfile`: default profile for direct node execution (`standard`, `watch`, `fail-fast`).
+
 ## Development
 
 From repository root:
@@ -54,6 +80,12 @@ Notes:
 
 - The extension icon must be a PNG file for Marketplace publishing.
 - Keep `CHANGELOG.md` updated for each published version.
+
+## Known Limitations
+
+- The extension requires a workspace folder; single loose files are not supported.
+- Target discovery depends on `ci-runner --list-targets`; invalid configs are shown as errors.
+- Watch mode behavior follows the CLI watcher capabilities of the current platform.
 
 ## README for Marketplace Listing
 

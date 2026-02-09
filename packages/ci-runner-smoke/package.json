@@ -1,6 +1,6 @@
 {
   "name": "@number10/ci-runner-smoke",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "Smoke project validating ci-runner-cli external usage.",

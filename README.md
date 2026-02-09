@@ -46,6 +46,12 @@ For extension usage and Marketplace publishing notes, see:
 
 - `packages/ci-runner-vscode/README.md`
 
+## Release Notes
+
+Release history is documented in:
+
+- `CHANGELOG.md`
+
 ## License
 
 MIT. See `LICENSE`.
