@@ -34,10 +34,7 @@
     "commands": [
       {
         "command": "ciRunner.refresh",
-        "title": "Refresh",
-        "icon": {
-          "id": "refresh"
-        }
+        "title": "Refresh"
       },
       {
         "command": "ciRunner.runConfig",
@@ -53,31 +50,19 @@
       },
       {
         "command": "ciRunner.runConfigDefault",
-        "title": "Run Config (Default Profile)",
-        "icon": {
-          "id": "play"
-        }
+        "title": "Run Config (Default Profile)"
       },
       {
         "command": "ciRunner.stopConfig",
-        "title": "Stop Config Run",
-        "icon": {
-          "id": "stop-circle"
-        }
+        "title": "Stop Config Run"
       },
       {
         "command": "ciRunner.stopAll",
-        "title": "Stop All Runs",
-        "icon": {
-          "id": "debug-stop"
-        }
+        "title": "Stop All Runs"
       },
       {
         "command": "ciRunner.openOutput",
-        "title": "Open Output",
-        "icon": {
-          "id": "output"
-        }
+        "title": "Open Output"
       }
     ],
     "menus": {
