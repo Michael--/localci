@@ -248,6 +248,7 @@ class CiRunnerViewModel implements vscode.TreeDataProvider<TreeNode>, vscode.Dis
     const childProcess = spawn(launch.command, args, {
       cwd: workspaceFolder.uri.fsPath,
       env: processEnv(),
+      shell: requiresShellExecution(launch.command),
       stdio: 'pipe',
     })
 
@@ -651,6 +652,7 @@ const runCliJsonCommand = async (
     const childProcess = spawn(command, [...args], {
       cwd,
       env: processEnv(),
+      shell: requiresShellExecution(command),
       stdio: 'pipe',
     })
 
@@ -823,6 +825,10 @@ const processEnv = (): NodeJS.ProcessEnv => {
   env.NO_COLOR = '1'
   env.FORCE_COLOR = '0'
   return env
+}
+
+const requiresShellExecution = (command: string): boolean => {
+  return process.platform === 'win32' && command.toLowerCase().endsWith('.cmd')
 }
 
 const formatTargetDescription = (state: ConfigState | undefined, entry: TargetEntry): string => {
