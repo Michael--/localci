@@ -6,6 +6,7 @@
   "displayName": "CI Runner",
   "publisher": "number10",
   "homepage": "https://www.npmjs.com/package/@number10/ci-runner-cli",
+  "repository": "https://github.com/Michael--/localci",
   "bugs": {
     "email": "mr@number10.de"
   },
