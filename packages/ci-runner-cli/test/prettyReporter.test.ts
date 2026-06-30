@@ -171,7 +171,7 @@ describe('PrettyReporter', () => {
   // -- pnpm recursive filtering ------------------------------------------
 
   it('shows focused output for failed pnpm recursive runs', () => {
-    const reporter = new PrettyReporter({ verbose: false })
+    const reporter = new PrettyReporter({ verbose: false, version: '0.0.0-test' })
     const output = captureStdout(() => {
       reporter.onStepComplete(
         createFailedStepResult([
@@ -199,7 +199,7 @@ describe('PrettyReporter', () => {
   // -- short failed output -----------------------------------------------
 
   it('shows all output for short failed steps (≤ 40 lines)', () => {
-    const reporter = new PrettyReporter({ verbose: false })
+    const reporter = new PrettyReporter({ verbose: false, version: '0.0.0-test' })
     const lines = ['src/index.ts(4,2): error TS1005: ";" expected.', 'tsc failed.']
     const output = captureStdout(() => {
       reporter.onStepComplete(createFailedStepResult(lines))
@@ -213,7 +213,7 @@ describe('PrettyReporter', () => {
   // -- long output: error extraction -------------------------------------
 
   it('extracts error lines from long failed output and hides noise', () => {
-    const reporter = new PrettyReporter({ verbose: false })
+    const reporter = new PrettyReporter({ verbose: false, version: '0.0.0-test' })
     const lines = [
       ...noiseLines(45), // 45 harmless Done lines
       'src/index.ts(10,5): error TS2322: Type "string" is not assignable.',
@@ -239,7 +239,7 @@ describe('PrettyReporter', () => {
   })
 
   it('extracts error lines with brief context from long output', () => {
-    const reporter = new PrettyReporter({ verbose: false })
+    const reporter = new PrettyReporter({ verbose: false, version: '0.0.0-test' })
     const lines = [
       ...noiseLines(50),
       'packages/b typecheck: compiling...',
@@ -263,7 +263,7 @@ describe('PrettyReporter', () => {
   // -- long output: fallback to tail -------------------------------------
 
   it('falls back to tail truncation when no error patterns match', () => {
-    const reporter = new PrettyReporter({ verbose: false })
+    const reporter = new PrettyReporter({ verbose: false, version: '0.0.0-test' })
     const lines = Array.from({ length: 100 }, (_, i) => `line ${i + 1}: all good`)
     const output = captureStdout(() => {
       reporter.onStepComplete(createFailedStepResult(lines))
@@ -284,7 +284,7 @@ describe('PrettyReporter', () => {
   // -- verbose mode ------------------------------------------------------
 
   it('shows full output in verbose mode regardless of length', () => {
-    const reporter = new PrettyReporter({ verbose: true })
+    const reporter = new PrettyReporter({ verbose: true, version: '0.0.0-test' })
     const lines = [...noiseLines(80), 'src/index.ts: error TS1234: broken.']
     const output = captureStdout(() => {
       reporter.onStepComplete(createFailedStepResult(lines))
@@ -303,8 +303,8 @@ describe('PrettyReporter', () => {
   })
 
   it('shows stdout for passed steps only in verbose mode', () => {
-    const verbose = new PrettyReporter({ verbose: true })
-    const quiet = new PrettyReporter({ verbose: false })
+    const verbose = new PrettyReporter({ verbose: true, version: '0.0.0-test' })
+    const quiet = new PrettyReporter({ verbose: false, version: '0.0.0-test' })
     const lines = ['All tests passed.', 'Coverage: 100%']
 
     const verboseOutput = captureStdout(() => {
@@ -323,7 +323,7 @@ describe('PrettyReporter', () => {
   // -- timed_out steps ---------------------------------------------------
 
   it('extracts error lines for timed_out steps like for failed steps', () => {
-    const reporter = new PrettyReporter({ verbose: false })
+    const reporter = new PrettyReporter({ verbose: false, version: '0.0.0-test' })
     const lines = [...noiseLines(50), 'ETIMEDOUT: connection timed out after 30000ms']
 
     const output = captureStdout(() => {
@@ -338,7 +338,7 @@ describe('PrettyReporter', () => {
   // -- skipped steps -----------------------------------------------------
 
   it('summarizes long output for skipped steps', () => {
-    const reporter = new PrettyReporter({ verbose: false })
+    const reporter = new PrettyReporter({ verbose: false, version: '0.0.0-test' })
     const lines = [...noiseLines(50), 'optional step output']
 
     const output = captureStdout(() => {
@@ -352,7 +352,7 @@ describe('PrettyReporter', () => {
   // -- empty output ------------------------------------------------------
 
   it('handles empty output gracefully', () => {
-    const reporter = new PrettyReporter({ verbose: false })
+    const reporter = new PrettyReporter({ verbose: false, version: '0.0.0-test' })
     const output = captureStdout(() => {
       reporter.onStepComplete(createFailedStepResult([]))
     })
@@ -379,7 +379,7 @@ describe('PrettyReporter', () => {
     ['fatal', 'Fatal error: out of memory'],
     ['unhandled', 'Unhandled rejection: Error: boom'],
   ])('detects "%s" as an error line', (_label, line) => {
-    const reporter = new PrettyReporter({ verbose: false })
+    const reporter = new PrettyReporter({ verbose: false, version: '0.0.0-test' })
     const lines = [...noiseLines(45), line]
     const output = captureStdout(() => {
       reporter.onStepComplete(createFailedStepResult(lines))
@@ -392,7 +392,7 @@ describe('PrettyReporter', () => {
   // -- pipeline completion summary --------------------------------------
 
   it('lists failed and timed_out step names in summary', () => {
-    const reporter = new PrettyReporter({ verbose: false })
+    const reporter = new PrettyReporter({ verbose: false, version: '0.0.0-test' })
     const result = createPipelineResult({
       steps: [
         { name: 'Lint', status: 'passed' },
@@ -415,7 +415,7 @@ describe('PrettyReporter', () => {
   })
 
   it('shows skipped steps in summary when present', () => {
-    const reporter = new PrettyReporter({ verbose: false })
+    const reporter = new PrettyReporter({ verbose: false, version: '0.0.0-test' })
     const result = createPipelineResult({
       steps: [
         { name: 'Lint', status: 'passed' },
@@ -434,7 +434,7 @@ describe('PrettyReporter', () => {
   })
 
   it('omits failure listing when all steps pass', () => {
-    const reporter = new PrettyReporter({ verbose: false })
+    const reporter = new PrettyReporter({ verbose: false, version: '0.0.0-test' })
     const result = createPipelineResult({
       steps: [
         { name: 'Lint', status: 'passed' },

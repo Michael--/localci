@@ -1,4 +1,5 @@
 import { watch } from 'node:fs'
+import { createRequire } from 'node:module'
 import { relative } from 'node:path'
 
 import {
@@ -15,6 +16,9 @@ import type { CiRunnerTarget, CliOutputFormat } from './config/types.js'
 import { createDefaultStepParsers } from './parsers/defaultStepParsers.js'
 import { PrettyReporter } from './reporters/prettyReporter.js'
 import { createWatchIgnoreMatcher, normalizeWatchPath } from './watch/watchIgnoreMatcher.js'
+
+const require = createRequire(import.meta.url)
+const ciRunnerVersion: string = require('../package.json').version as string
 
 /**
  * Runtime options for a CLI execution.
@@ -80,7 +84,9 @@ export const runCliPipeline = async (options: RunCliPipelineOptions): Promise<nu
       executor: createNodeCommandExecutor(),
       parserResolver: parserRegistry,
       reporters:
-        effectiveFormat === 'pretty' ? [new PrettyReporter({ verbose: effectiveVerbose })] : [],
+        effectiveFormat === 'pretty'
+          ? [new PrettyReporter({ verbose: effectiveVerbose, version: ciRunnerVersion })]
+          : [],
     })
 
     return await runner.run()

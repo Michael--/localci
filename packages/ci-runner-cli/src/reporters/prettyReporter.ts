@@ -20,6 +20,8 @@ const ERROR_CONTEXT_LINES = 1
 export interface PrettyReporterOptions {
   /** Emits stdout/stderr also for successful steps. */
   readonly verbose: boolean
+  /** ci-runner version string displayed in the start header. */
+  readonly version: string
 }
 
 /**
@@ -48,7 +50,9 @@ export class PrettyReporter implements PipelineReporter {
    * @param steps Pipeline steps.
    */
   public onPipelineStart(steps: readonly PipelineStep[]): void {
-    process.stdout.write(colorize(`ci-runner: executing ${steps.length} steps\n`, 'blue'))
+    process.stdout.write(
+      colorize(`ci-runner v${this.options.version}: executing ${steps.length} steps\n`, 'blue')
+    )
   }
 
   /**
@@ -119,6 +123,26 @@ export class PrettyReporter implements PipelineReporter {
     process.stdout.write(
       `Summary: total=${summary.total} passed=${summary.passed} skipped=${summary.skipped} failed=${summary.failed} timedOut=${summary.timedOut} duration=${summary.durationMs}ms\n`
     )
+
+    // Compact per-status listing of non-passed steps so failures are
+    // immediately visible without scrolling back.
+    const failed = result.steps.filter((s) => s.status === 'failed')
+    const timedOut = result.steps.filter((s) => s.status === 'timed_out')
+    const skipped = result.steps.filter((s) => s.status === 'skipped')
+
+    if (failed.length > 0) {
+      process.stdout.write(colorize(`  failed: ${failed.map((s) => s.name).join(', ')}\n`, 'red'))
+    }
+    if (timedOut.length > 0) {
+      process.stdout.write(
+        colorize(`  timed_out: ${timedOut.map((s) => s.name).join(', ')}\n`, 'red')
+      )
+    }
+    if (skipped.length > 0) {
+      process.stdout.write(
+        colorize(`  skipped: ${skipped.map((s) => s.name).join(', ')}\n`, 'yellow')
+      )
+    }
 
     if (result.exitCode === 0) {
       process.stdout.write(colorize('Result: ✅ PASS\n', 'green'))

@@ -58,7 +58,7 @@ describe('ci-runner-cli smoke', () => {
     expect(result.exitCode).toBe(0)
     expect(stdout).toBe(
       [
-        'ci-runner: executing 1 steps',
+        'ci-runner v<version>: executing 1 steps',
         '-> Prepare',
         '✓ Prepare <duration>',
         '',
@@ -90,13 +90,14 @@ describe('ci-runner-cli smoke', () => {
     expect(result.exitCode).toBe(1)
     expect(stdout).toBe(
       [
-        'ci-runner: executing 1 steps',
+        'ci-runner v<version>: executing 1 steps',
         '-> Failing Check',
         '✗ Failing Check failed (command_failed, <duration>)',
         '  stderr:',
         '    optional step failed intentionally',
         '',
         'Summary: total=1 passed=0 skipped=0 failed=1 timedOut=0 duration=<duration>',
+        '  failed: Failing Check',
         'Result: FAIL',
       ].join('\n')
     )
@@ -297,7 +298,7 @@ describe('ci-runner-cli smoke', () => {
       'ℹ️  Skipping Integration Tests (set RUN_INTEGRATION_TESTS=true to enable)'
     )
     expect(stdout).toContain('ℹ️  Skipping Clean (enabled=false)')
-    expect(stdout).toContain('ci-runner: executing 1 steps')
+    expect(stdout).toContain('ci-runner v<version>: executing 1 steps')
     expect(stdout).toContain('Summary: total=1 passed=1 skipped=0 failed=0 timedOut=0')
   })
 
@@ -368,7 +369,10 @@ describe('ci-runner-cli smoke', () => {
         const unsupportedExitCode = await waitForChildExit(child)
         expect(unsupportedExitCode).toBe(0)
         expect(
-          countOccurrences(stripAnsi(stdout), 'ci-runner: executing 1 steps')
+          countOccurrences(
+            normalizeVersion(stripAnsi(stdout)),
+            'ci-runner v<version>: executing 1 steps'
+          )
         ).toBeGreaterThanOrEqual(1)
         return
       }
@@ -376,7 +380,10 @@ describe('ci-runner-cli smoke', () => {
       await writeFile(triggerFilePath, `${Date.now()}`, 'utf8')
       await waitForCondition(() => {
         const plainOutput = stripAnsi(`${stdout}\n${stderr}`)
-        const executionCount = countOccurrences(plainOutput, 'ci-runner: executing 1 steps')
+        const executionCount = countOccurrences(
+          normalizeVersion(plainOutput),
+          'ci-runner v<version>: executing 1 steps'
+        )
         return (
           executionCount >= 2 || hasWatchFallbackMessage(plainOutput) || child.exitCode !== null
         )
@@ -388,7 +395,7 @@ describe('ci-runner-cli smoke', () => {
         const fallbackExitCode = await waitForChildExit(child)
         expect(fallbackExitCode).toBe(0)
         expect(
-          countOccurrences(plainStdout, 'ci-runner: executing 1 steps')
+          countOccurrences(normalizeVersion(plainStdout), 'ci-runner v<version>: executing 1 steps')
         ).toBeGreaterThanOrEqual(1)
         return
       }
@@ -397,9 +404,9 @@ describe('ci-runner-cli smoke', () => {
       const exitCode = await waitForChildExit(child)
       expect(exitCode).toBe(0)
       expect(stderr).toBe('')
-      expect(countOccurrences(plainStdout, 'ci-runner: executing 1 steps')).toBeGreaterThanOrEqual(
-        2
-      )
+      expect(
+        countOccurrences(normalizeVersion(plainStdout), 'ci-runner v<version>: executing 1 steps')
+      ).toBeGreaterThanOrEqual(2)
     } finally {
       if (child.exitCode === null && child.signalCode === null) {
         child.kill('SIGTERM')
@@ -521,5 +528,11 @@ const normalizePrettyOutput = (value: string): string => {
   return withoutAnsi
     .replace(/\b\d+ms\b/g, '<duration>')
     .replace(/duration=\d+ms/g, 'duration=<duration>')
+    .replace(/ci-runner v[\d.]+:/g, 'ci-runner v<version>:')
     .trimEnd()
+}
+
+/** Replaces the actual version number in ci-runner output with a stable placeholder. */
+const normalizeVersion = (value: string): string => {
+  return value.replace(/ci-runner v[\d.]+:/g, 'ci-runner v<version>:')
 }

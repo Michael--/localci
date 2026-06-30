@@ -962,7 +962,7 @@ const parseWatchRunExitCodeFromLine = (line: string): 0 | 1 | null => {
 }
 
 const isWatchRunStartLine = (line: string): boolean => {
-  return line.trim().startsWith('ci-runner: executing ')
+  return /^ci-runner(?: v[\d.]+)?: executing /.test(line.trim())
 }
 
 const drainCompleteLines = (
