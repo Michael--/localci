@@ -122,6 +122,8 @@ const stripAnsi = (text: string): string => {
 interface StepStub {
   readonly name: string
   readonly status: StepResult['status']
+  /** Optional stdout content for the step (e.g. pnpm recursive output). */
+  readonly stdout?: string
 }
 
 const createPipelineResult = (opts: { steps: readonly StepStub[] }): PipelineRunResult => {
@@ -140,7 +142,12 @@ const createPipelineResult = (opts: { steps: readonly StepStub[] }): PipelineRun
     startedAt: 0,
     finishedAt: 1,
     durationMs: 1,
-    output: { exitCode: s.status === 'passed' ? 0 : 1, signal: null, stdout: '', stderr: '' },
+    output: {
+      exitCode: s.status === 'passed' ? 0 : 1,
+      signal: null,
+      stdout: s.stdout ?? '',
+      stderr: '',
+    },
     metrics: null,
   }))
 
@@ -451,5 +458,83 @@ describe('PrettyReporter', () => {
     expect(output).not.toContain('timed_out:')
     expect(output).not.toContain('skipped:')
     expect(output).toContain('Result: ✅ PASS')
+  })
+
+  // -- project extraction in summary ------------------------------------
+
+  it('extracts failing pnpm project names into summary', () => {
+    const reporter = new PrettyReporter({ verbose: false, version: '0.0.0-test' })
+    const result = createPipelineResult({
+      steps: [
+        { name: 'Lint', status: 'passed' },
+        {
+          name: 'Build',
+          status: 'failed',
+          stdout: [
+            '> workspace@1.0.0 build /repo',
+            '> pnpm -r run build',
+            '',
+            'Scope: 3 of 3 workspace projects',
+            'packages/core build: Done',
+            'apps/test-ui build: src/Theme.tsx(21,17): error TS2883: ...',
+            'apps/test-ui build: Failed',
+            '/repo/apps/test-ui:',
+            ' ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL @scope/test-ui@0.7.0 build: `tsc --noEmit`',
+            'Exit status 2',
+            ' ELIFECYCLE Command failed with exit code 2.',
+          ].join('\n'),
+        },
+        {
+          name: 'Typecheck',
+          status: 'failed',
+          stdout: [
+            '> workspace@1.0.0 typecheck /repo',
+            '> pnpm -r run typecheck',
+            '',
+            'Scope: 3 of 3 workspace projects',
+            'packages/core typecheck: Done',
+            'apps/test-ui typecheck: Failed',
+            'packages/components typecheck: Failed',
+            '/repo/packages/components:',
+            ' ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL ...',
+            'Exit status 2',
+          ].join('\n'),
+        },
+      ],
+    })
+
+    // Simulate pipeline execution: onStepComplete before onPipelineComplete.
+    for (const step of result.steps) {
+      reporter.onStepComplete(step)
+    }
+
+    const output = captureStdout(() => {
+      reporter.onPipelineComplete(result)
+    })
+
+    expect(output).toContain('failed=2')
+    expect(output).toContain('Build (test-ui)')
+    expect(output).toContain('Typecheck (components, test-ui)')
+  })
+
+  it('shows step names only when no project info is in output', () => {
+    const reporter = new PrettyReporter({ verbose: false, version: '0.0.0-test' })
+    const result = createPipelineResult({
+      steps: [
+        {
+          name: 'Mystery Step',
+          status: 'failed',
+          stdout: 'some random failure with no project references',
+        },
+      ],
+    })
+
+    const output = captureStdout(() => {
+      reporter.onPipelineComplete(result)
+    })
+
+    // Step name present but no parenthesized projects.
+    expect(output).toContain('Mystery Step')
+    expect(output).not.toContain('(')
   })
 })
