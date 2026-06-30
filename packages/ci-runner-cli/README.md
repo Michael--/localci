@@ -71,7 +71,8 @@ ci-runner --format json
 - Stable step orchestration with retries and timeouts.
 - Optional non-blocking steps (`optional: true`) for best-effort checks.
 - Conditional execution via environment filters (`when.env`).
-- Readable local output and complete machine-readable output.
+- Readable local output: failed steps show only error-relevant lines; the summary lists exactly which packages failed per step.
+- Complete machine-readable output (`--format json`).
 - Type-safe config authoring with `@number10/ci-runner-cli/types`.
 
 ## Config File

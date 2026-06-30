@@ -4,6 +4,21 @@ All notable changes to this project are documented in this file.
 
 The format follows Keep a Changelog principles and uses semantic versioning for published artifacts.
 
+## [0.3.0] - 2026-06-30
+
+### Added
+
+- Pretty output now shows the ci-runner version in the startup header (`ci-runner v0.3.0: executing N steps`).
+- Failed step summary now lists which packages failed within each step, e.g. `Build failed(2) (apps/test-ui, apps/docs-site)`.
+- Smart output mode for failed steps: short output is shown in full; long output is filtered to error-relevant lines with brief context; a tail fallback applies when no error patterns match.
+- `pnpm -r` recursive failure output is filtered to only show lines from the actually failing packages — successful packages are suppressed.
+
+### Fixed
+
+- ANSI colour codes emitted by pnpm (when `FORCE_COLOR` is active) no longer prevent failing package names from being detected and shown in the summary.
+- Node.js `NO_COLOR`/`FORCE_COLOR` configuration warnings, Vite/Rolldown informational codes (`[IMPORT_IS_UNDEFINED]`, `[CIRCULAR_DEPENDENCY]`, etc.), build size reports, and success markers (`✓`) are now suppressed from failure output to reduce noise.
+- Overly broad error-line patterns (`undefined`, `expected`, `received`, `missing`, `stderr`) removed to prevent false matches on non-error build output.
+
 ## [0.2.1] - 2026-02-09
 
 ### Changed
