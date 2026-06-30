@@ -125,17 +125,18 @@ export class PrettyReporter implements PipelineReporter {
     )
 
     // Compact per-status listing of non-passed steps so failures are
-    // immediately visible without scrolling back.
+    // immediately visible without scrolling back. Includes failing
+    // package / project names extracted from step output when available.
     const failed = result.steps.filter((s) => s.status === 'failed')
     const timedOut = result.steps.filter((s) => s.status === 'timed_out')
     const skipped = result.steps.filter((s) => s.status === 'skipped')
 
     if (failed.length > 0) {
-      process.stdout.write(colorize(`  failed: ${failed.map((s) => s.name).join(', ')}\n`, 'red'))
+      process.stdout.write(colorize(`  failed: ${formatStepNamesWithProjects(failed)}\n`, 'red'))
     }
     if (timedOut.length > 0) {
       process.stdout.write(
-        colorize(`  timed_out: ${timedOut.map((s) => s.name).join(', ')}\n`, 'red')
+        colorize(`  timed_out: ${formatStepNamesWithProjects(timedOut)}\n`, 'red')
       )
     }
     if (skipped.length > 0) {
@@ -197,7 +198,7 @@ export class PrettyReporter implements PipelineReporter {
     }
 
     const stdout = filterFailedStepOutput(result.status, result.output.stdout)
-    const stderr = result.output.stderr
+    const stderr = filterFailedStepOutput(result.status, result.output.stderr)
     const combined = [stdout, stderr].filter((s) => s.trim().length > 0).join('\n')
     const lines = combined.split(/\r?\n/u)
 
@@ -376,6 +377,81 @@ const extractMissingScript = (result: StepResult): string | null => {
 }
 
 // ---------------------------------------------------------------------------
+// Failing project extraction — for step-level failure attribution
+// ---------------------------------------------------------------------------
+
+/**
+ * Formats step names with their failing project / package names.
+ *
+ * Example output: `Build (packages/core, packages/components), Typecheck (apps/test-ui)`
+ *
+ * @param steps Failed or timed_out step results.
+ * @returns Compact formatted string.
+ */
+const formatStepNamesWithProjects = (steps: readonly StepResult[]): string => {
+  return steps
+    .map((step) => {
+      const projects = extractFailingProjects(step)
+      if (projects.length === 0) {
+        return step.name
+      }
+
+      return `${step.name} (${projects.join(', ')})`
+    })
+    .join(', ')
+}
+
+/**
+ * Extracts failing project / package names from step output.
+ *
+ * Strategy:
+ * 1. Parse pnpm recursive `project script: Failed` lines.
+ * 2. Scan error-pattern lines for project-like path prefixes.
+ *
+ * @param result Step result with captured stdout/stderr.
+ * @returns Deduplicated, sorted project names (short form: last path segment).
+ */
+const extractFailingProjects = (result: StepResult): string[] => {
+  const combined = `${result.output.stdout}\n${result.output.stderr}`
+  const lines = combined.split(/\r?\n/u)
+  const projects = new Set<string>()
+
+  // 1. Pnpm recursive format: `project/path script: Failed`
+  for (const line of lines) {
+    const parsed = parseFailedRecursiveExecution(line)
+    if (parsed) {
+      projects.add(shortProjectName(parsed.projectPath))
+    }
+  }
+
+  // 2. Scan error lines for project-like references.
+  for (const line of lines) {
+    if (!isSuppressedLine(line) && ERROR_LINE_PATTERNS.some((p) => p.test(line))) {
+      const projectMatch = line.match(/^(?<project>[a-z0-9@][a-z0-9/._@-]*?)\s+[a-z0-9:_-]+:\s/im)
+      if (projectMatch?.groups?.project) {
+        const name = shortProjectName(projectMatch.groups.project)
+        // Only include if it looks like a real package path (contains at least one /).
+        if (projectMatch.groups.project.includes('/')) {
+          projects.add(name)
+        }
+      }
+    }
+  }
+
+  return [...projects].sort()
+}
+
+/**
+ * Returns the last path segment of a project reference.
+ *
+ * `packages/core` → `core`  |  `apps/test-ui` → `test-ui`
+ */
+const shortProjectName = (projectPath: string): string => {
+  const normalized = projectPath.replaceAll('\\', '/')
+  return normalized.split('/').pop() ?? normalized
+}
+
+// ---------------------------------------------------------------------------
 // Error line extraction — keeps only lines that look like failures
 // ---------------------------------------------------------------------------
 
@@ -386,9 +462,11 @@ const extractMissingScript = (result: StepResult): string | null => {
  * build tools, and Node.js runtime errors.
  */
 const ERROR_LINE_PATTERNS: readonly RegExp[] = [
-  // TypeScript / ESLint / linter diagnostics
+  // Diagnostics: generic error is safe (rare false positives);
+  // warning is position-anchored to avoid Node.js deprecation noise.
   /\berror\b/i,
-  /\bwarning\b/i,
+  /[:(]\d+[,:]\d+[):]:?\s+warning\b/i,
+  /^\s+\d+:\d+\s+warning\b/im,
 
   // Test runner failures
   /\bFAIL\b/,
@@ -456,7 +534,19 @@ const ERROR_LINE_PATTERNS: readonly RegExp[] = [
 ]
 
 /** Success-indicator lines that should never be treated as errors. */
-const SUPPRESS_PATTERNS: readonly RegExp[] = [/: Done$/, /^\s*$/, /^Done\b/, /^> /, /^Scope:/]
+const SUPPRESS_PATTERNS: readonly RegExp[] = [
+  /: Done$/,
+  /^\s*$/,
+  /^Done\b/,
+  /^> /,
+  /^Scope:/,
+  // Node.js runtime deprecation / configuration warnings (not build errors)
+  /\(node:\d+\) Warning:/,
+  /\(Use `node --trace-warnings/,
+  /^\(node:\d+\)/,
+  /The 'NO_COLOR' env is ignored/,
+  /the 'FORCE_COLOR' env being set/,
+]
 
 /**
  * Extracts error-relevant lines from output including brief leading context.
