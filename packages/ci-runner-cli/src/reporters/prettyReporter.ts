@@ -345,8 +345,14 @@ interface FailedRecursiveExecution {
   readonly scriptName: string
 }
 
+/** Strips ANSI SGR escape sequences (e.g. ESC[31m) from a string. */
+const ANSI_SGR_PATTERN = new RegExp(String.fromCharCode(27) + '\\[[0-9;]*m', 'gu')
+const stripAnsi = (s: string): string => s.replace(ANSI_SGR_PATTERN, '')
+
 const parseFailedRecursiveExecution = (line: string): FailedRecursiveExecution | null => {
-  const trimmedLine = line.trim()
+  // Strip ANSI colour codes before matching — pnpm colourises "Failed" in red
+  // when FORCE_COLOR is active, which would otherwise break the regex.
+  const trimmedLine = stripAnsi(line).trim()
   const match = trimmedLine.match(/^(?<projectPath>\S+)\s+(?<scriptName>[a-z0-9:_-]+):\s+Failed$/iu)
   if (!match?.groups) {
     return null
@@ -432,8 +438,11 @@ const extractFailingProjectsFromOutput = (result: StepResult): string[] => {
 
   // 2. Scan error lines for project-like references.
   for (const line of lines) {
-    if (!isSuppressedLine(line) && ERROR_LINE_PATTERNS.some((p) => p.test(line))) {
-      const projectMatch = line.match(/^(?<project>[a-z0-9@][a-z0-9/._@-]*?)\s+[a-z0-9:_-]+:\s/im)
+    const cleanLine = stripAnsi(line)
+    if (!isSuppressedLine(cleanLine) && ERROR_LINE_PATTERNS.some((p) => p.test(cleanLine))) {
+      const projectMatch = cleanLine.match(
+        /^(?<project>[a-z0-9@][a-z0-9/._@-]*?)\s+[a-z0-9:_-]+:\s/im
+      )
       if (projectMatch?.groups?.project) {
         if (projectMatch.groups.project.includes('/')) {
           projects.add(projectMatch.groups.project)
