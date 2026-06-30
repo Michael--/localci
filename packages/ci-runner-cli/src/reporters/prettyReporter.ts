@@ -467,8 +467,8 @@ const shortProjectName = (projectPath: string): string => {
  * build tools, and Node.js runtime errors.
  */
 const ERROR_LINE_PATTERNS: readonly RegExp[] = [
-  // Diagnostics: generic error is safe (rare false positives);
-  // warning is position-anchored to avoid Node.js deprecation noise.
+  // Diagnostics — generic 'error' keyword is the most reliable signal.
+  // 'warning' is position-anchored (file:line:col) to avoid noise.
   /\berror\b/i,
   /[:(]\d+[,:]\d+[):]:?\s+warning\b/i,
   /^\s+\d+:\d+\s+warning\b/im,
@@ -490,13 +490,6 @@ const ERROR_LINE_PATTERNS: readonly RegExp[] = [
   /\buncaught\b/i,
   /\bthrow(?:n|s)?\b/i,
   /\bCannot\b/,
-  /\bcannot\b/,
-  /\binvalid\b/i,
-  /\bexpected\b/i,
-  /\breceived\b/i,
-  /\bunexpected\b/i,
-  /\bundefined\b/i,
-  /\bnull\b.*\breference\b/i,
   /\bnot\s+(?:found|defined|a\s+function|supported|allowed|permitted|installed)\b/i,
 
   // POSIX / Node.js error codes
@@ -514,25 +507,19 @@ const ERROR_LINE_PATTERNS: readonly RegExp[] = [
   /\bExit status\b/i,
   /\bexited with\b/i,
   /\bnon-zero exit\b/i,
-  /\breturned exit code\b/i,
 
   // Build tool failures
   /\bCommand failed\b/i,
   /\bbuild failed\b/i,
   /\bcompilation failed\b/i,
-  /\bBuild failed\b/,
   /\babort(?:ed|ing)\b/i,
-  /\brollback\b/i,
   /\bpanic\b/i,
 
   // General failure markers
   /\bFailed\b/,
   /\bfatal\b/i,
-  /\bmissing\b/i,
-  /\bunresolved\b/i,
   /\bunhandled\b/i,
   /\brejection\b/i,
-  /\bstderr\b/i,
   /\bsegmentation fault\b/i,
   /\bstack trace\b/i,
   /\btraceback\b/i,
@@ -551,6 +538,22 @@ const SUPPRESS_PATTERNS: readonly RegExp[] = [
   /^\(node:\d+\)/,
   /The 'NO_COLOR' env is ignored/,
   /the 'FORCE_COLOR' env being set/,
+  // Success / progress indicators
+  /✓/,
+  /^\s*✔/,
+  // Vite / Rolldown informational warning codes (not build errors)
+  /\[IMPORT_IS_UNDEFINED\]/,
+  /\[INEFFECTIVE_DYNAMIC_IMPORT\]/,
+  /\[CIRCULAR_DEPENDENCY\]/,
+  /\[UNUSED_EXTERNAL_IMPORT\]/,
+  // Build size / chunk reports
+  /\bkB\b.*\bgzip\b/i,
+  /dist\/assets\//,
+  // Build progress / prebuild success lines
+  /\bcreated .+ in \d/i,
+  /\bScanning package:/i,
+  /\brendering chunks/i,
+  /\bbuilt in \d/i,
 ]
 
 /**
