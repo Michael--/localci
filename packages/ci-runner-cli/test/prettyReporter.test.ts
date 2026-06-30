@@ -416,8 +416,9 @@ describe('PrettyReporter', () => {
 
     expect(output).toContain('failed=2')
     expect(output).toContain('timedOut=1')
-    expect(output).toContain('Typecheck, Test')
-    expect(output).toContain('Integration')
+    expect(output).toContain('Typecheck failed')
+    expect(output).toContain('Test failed')
+    expect(output).toContain('Integration timed_out')
     expect(output).toContain('Result: FAIL')
   })
 
@@ -513,8 +514,8 @@ describe('PrettyReporter', () => {
     })
 
     expect(output).toContain('failed=2')
-    expect(output).toContain('Build (test-ui)')
-    expect(output).toContain('Typecheck (components, test-ui)')
+    expect(output).toContain('Build failed (apps/test-ui)')
+    expect(output).toContain('Typecheck failed(2) (apps/test-ui, packages/components)')
   })
 
   it('shows step names only when no project info is in output', () => {

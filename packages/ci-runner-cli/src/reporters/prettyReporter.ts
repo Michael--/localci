@@ -139,13 +139,11 @@ export class PrettyReporter implements PipelineReporter {
     const timedOut = result.steps.filter((s) => s.status === 'timed_out')
     const skipped = result.steps.filter((s) => s.status === 'skipped')
 
-    if (failed.length > 0) {
-      process.stdout.write(colorize(`  failed: ${this.formatStepsWithProjects(failed)}\n`, 'red'))
+    for (const step of failed) {
+      process.stdout.write(colorize(this.formatFailedStepSummary(step, 'failed'), 'red'))
     }
-    if (timedOut.length > 0) {
-      process.stdout.write(
-        colorize(`  timed_out: ${this.formatStepsWithProjects(timedOut)}\n`, 'red')
-      )
+    for (const step of timedOut) {
+      process.stdout.write(colorize(this.formatFailedStepSummary(step, 'timed_out'), 'red'))
     }
     if (skipped.length > 0) {
       process.stdout.write(
@@ -162,19 +160,21 @@ export class PrettyReporter implements PipelineReporter {
   }
 
   /**
-   * Formats step names with their previously extracted failing project names.
+   * Formats a single failing/timed-out step as a summary line with project names and count.
+   *
+   * Examples:
+   *   `  Build failed(1) (apps/test-ui)\n`
+   *   `  Typecheck failed(2) (apps/test-ui, packages/core)\n`
+   *   `  Deploy timed_out\n`
    */
-  private formatStepsWithProjects(steps: readonly StepResult[]): string {
-    return steps
-      .map((step) => {
-        const projects = this.failingProjects.get(step.id)
-        if (!projects || projects.length === 0) {
-          return step.name
-        }
+  private formatFailedStepSummary(step: StepResult, status: string): string {
+    const projects = this.failingProjects.get(step.id)
+    if (!projects || projects.length === 0) {
+      return `  ${step.name} ${status}\n`
+    }
 
-        return `${step.name} (${projects.join(', ')})`
-      })
-      .join(', ')
+    const count = projects.length > 1 ? `${status}(${projects.length})` : status
+    return `  ${step.name} ${count} (${projects.join(', ')})\n`
   }
 
   /**
@@ -426,7 +426,7 @@ const extractFailingProjectsFromOutput = (result: StepResult): string[] => {
   for (const line of lines) {
     const parsed = parseFailedRecursiveExecution(line)
     if (parsed) {
-      projects.add(shortProjectName(parsed.projectPath))
+      projects.add(parsed.projectPath)
     }
   }
 
@@ -435,25 +435,14 @@ const extractFailingProjectsFromOutput = (result: StepResult): string[] => {
     if (!isSuppressedLine(line) && ERROR_LINE_PATTERNS.some((p) => p.test(line))) {
       const projectMatch = line.match(/^(?<project>[a-z0-9@][a-z0-9/._@-]*?)\s+[a-z0-9:_-]+:\s/im)
       if (projectMatch?.groups?.project) {
-        const name = shortProjectName(projectMatch.groups.project)
         if (projectMatch.groups.project.includes('/')) {
-          projects.add(name)
+          projects.add(projectMatch.groups.project)
         }
       }
     }
   }
 
   return [...projects].sort()
-}
-
-/**
- * Returns the last path segment of a project reference.
- *
- * `packages/core` → `core`  |  `apps/test-ui` → `test-ui`
- */
-const shortProjectName = (projectPath: string): string => {
-  const normalized = projectPath.replaceAll('\\', '/')
-  return normalized.split('/').pop() ?? normalized
 }
 
 // ---------------------------------------------------------------------------
