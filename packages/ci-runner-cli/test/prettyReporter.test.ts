@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import type { StepResult } from '../src/internal/core/index.js'
+import type { PipelineRunResult, StepResult } from '../src/internal/core/index.js'
 import { PrettyReporter } from '../src/reporters/prettyReporter.js'
 
 const ANSI_ESCAPE_PATTERN = new RegExp(String.raw`\u001B\[[0-?]*[ -/]*[@-~]`, 'gu')
@@ -117,6 +117,45 @@ const captureStdout = (callback: () => void): string => {
 
 const stripAnsi = (text: string): string => {
   return text.replaceAll(ANSI_ESCAPE_PATTERN, '')
+}
+
+interface StepStub {
+  readonly name: string
+  readonly status: StepResult['status']
+}
+
+const createPipelineResult = (opts: { steps: readonly StepStub[] }): PipelineRunResult => {
+  const steps: StepResult[] = opts.steps.map((s) => ({
+    id: s.name.toLowerCase().replace(/\s+/g, '-'),
+    name: s.name,
+    status: s.status,
+    reason:
+      s.status === 'failed'
+        ? 'command_failed'
+        : s.status === 'timed_out'
+          ? 'command_timeout'
+          : undefined,
+    attempts: 1,
+    retried: false,
+    startedAt: 0,
+    finishedAt: 1,
+    durationMs: 1,
+    output: { exitCode: s.status === 'passed' ? 0 : 1, signal: null, stdout: '', stderr: '' },
+    metrics: null,
+  }))
+
+  const passed = steps.filter((s) => s.status === 'passed').length
+  const failed = steps.filter((s) => s.status === 'failed').length
+  const skipped = steps.filter((s) => s.status === 'skipped').length
+  const timedOut = steps.filter((s) => s.status === 'timed_out').length
+
+  return {
+    steps,
+    summary: { total: steps.length, passed, failed, skipped, timedOut, durationMs: 100 },
+    exitCode: failed > 0 || timedOut > 0 ? 1 : 0,
+    startedAt: 0,
+    finishedAt: 100,
+  }
 }
 
 /** Generates N harmless "Done" lines used as noise in long output tests. */
@@ -348,5 +387,69 @@ describe('PrettyReporter', () => {
 
     expect(output).toContain(line)
     expect(output).not.toContain('packages/pkg-0 build: Done')
+  })
+
+  // -- pipeline completion summary --------------------------------------
+
+  it('lists failed and timed_out step names in summary', () => {
+    const reporter = new PrettyReporter({ verbose: false })
+    const result = createPipelineResult({
+      steps: [
+        { name: 'Lint', status: 'passed' },
+        { name: 'Typecheck', status: 'failed' },
+        { name: 'Test', status: 'failed' },
+        { name: 'Build', status: 'passed' },
+        { name: 'Integration', status: 'timed_out' },
+      ],
+    })
+
+    const output = captureStdout(() => {
+      reporter.onPipelineComplete(result)
+    })
+
+    expect(output).toContain('failed=2')
+    expect(output).toContain('timedOut=1')
+    expect(output).toContain('Typecheck, Test')
+    expect(output).toContain('Integration')
+    expect(output).toContain('Result: FAIL')
+  })
+
+  it('shows skipped steps in summary when present', () => {
+    const reporter = new PrettyReporter({ verbose: false })
+    const result = createPipelineResult({
+      steps: [
+        { name: 'Lint', status: 'passed' },
+        { name: 'Optional Check', status: 'skipped' },
+      ],
+    })
+
+    const output = captureStdout(() => {
+      reporter.onPipelineComplete(result)
+    })
+
+    expect(output).toContain('skipped=1')
+    expect(output).toContain('Optional Check')
+    // Skipped doesn't cause failure.
+    expect(output).toContain('Result: ✅ PASS')
+  })
+
+  it('omits failure listing when all steps pass', () => {
+    const reporter = new PrettyReporter({ verbose: false })
+    const result = createPipelineResult({
+      steps: [
+        { name: 'Lint', status: 'passed' },
+        { name: 'Test', status: 'passed' },
+      ],
+    })
+
+    const output = captureStdout(() => {
+      reporter.onPipelineComplete(result)
+    })
+
+    expect(output).toContain('passed=2')
+    expect(output).not.toContain('failed:')
+    expect(output).not.toContain('timed_out:')
+    expect(output).not.toContain('skipped:')
+    expect(output).toContain('Result: ✅ PASS')
   })
 })
