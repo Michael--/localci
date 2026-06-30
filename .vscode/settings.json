@@ -1,4 +1,7 @@
 {
   "ciRunner.defaultConfigPath": "ci.config.json",
-  "ciRunner.defaultRunProfile": "standard"
+  "ciRunner.defaultRunProfile": "standard",
+  "chat.tools.terminal.autoApprove": {
+    "pnpm": true
+  }
 }

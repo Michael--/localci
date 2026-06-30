@@ -5,6 +5,15 @@ import type {
   StepResult,
 } from '../internal/core/index.js'
 
+/** Maximum total output lines before summarization kicks in. */
+const MAX_FULL_OUTPUT_LINES = 40
+
+/** Maximum lines shown when error extraction is used. */
+const MAX_ERROR_LINES = 60
+
+/** Lines of leading context kept before each error hit. */
+const ERROR_CONTEXT_LINES = 1
+
 /**
  * Options for the pretty console reporter.
  */
@@ -15,6 +24,11 @@ export interface PrettyReporterOptions {
 
 /**
  * Compact console reporter with failure-focused detail output.
+ *
+ * In non-verbose mode, failed step output is summarized:
+ * - Error-relevant lines are extracted and shown.
+ * - Long output is truncated with a hint to use --verbose.
+ * - In verbose mode, all output is emitted unchanged.
  */
 export class PrettyReporter implements PipelineReporter {
   private readonly options: PrettyReporterOptions
@@ -60,7 +74,7 @@ export class PrettyReporter implements PipelineReporter {
           : ''
       process.stdout.write(colorize(`✓ ${result.name} ${duration}${metricText}\n`, 'green'))
       if (this.options.verbose) {
-        this.printOutput(result)
+        this.printFullOutput(result)
       }
       return
     }
@@ -76,12 +90,12 @@ export class PrettyReporter implements PipelineReporter {
       if (missingScript) {
         process.stdout.write(colorize(`  note: missing script "${missingScript}"\n`, 'yellow'))
         if (this.options.verbose) {
-          this.printOutput(result)
+          this.printFullOutput(result)
         }
         return
       }
 
-      this.printOutput(result)
+      this.printSmartOutput(result)
       return
     }
 
@@ -91,7 +105,7 @@ export class PrettyReporter implements PipelineReporter {
         'red'
       )
     )
-    this.printOutput(result)
+    this.printSmartOutput(result)
   }
 
   /**
@@ -114,9 +128,20 @@ export class PrettyReporter implements PipelineReporter {
     process.stdout.write(colorize('Result: FAIL\n', 'red'))
   }
 
-  private printOutput(result: StepResult): void {
-    const stdout = filterFailedStepOutput(result.status, result.output.stdout).trim()
-    const stderr = result.output.stderr.trim()
+  /**
+   * Emits full stdout / stderr without filtering.
+   *
+   * @param result Step result with raw output.
+   * @param filteredStdout Optional pre-filtered stdout override.
+   * @param filteredStderr Optional pre-filtered stderr override.
+   */
+  private printFullOutput(
+    result: StepResult,
+    filteredStdout?: string,
+    filteredStderr?: string
+  ): void {
+    const stdout = (filteredStdout ?? result.output.stdout).trim()
+    const stderr = (filteredStderr ?? result.output.stderr).trim()
 
     if (stdout) {
       process.stdout.write(colorize('  stdout:\n', 'yellow'))
@@ -130,7 +155,85 @@ export class PrettyReporter implements PipelineReporter {
       process.stdout.write('\n')
     }
   }
+
+  /**
+   * Emits a concise failure summary for non-verbose mode.
+   *
+   * Strategy:
+   * 1. Apply pnpm recursive filter for failed steps.
+   * 2. If output is short enough, show it all (pre-filtered).
+   * 3. Extract error-relevant lines plus brief context.
+   * 4. If error extraction yields nothing, fall back to tail truncation.
+   * 5. Always note how many lines were hidden when truncation occurs.
+   */
+  private printSmartOutput(result: StepResult): void {
+    if (this.options.verbose) {
+      this.printFullOutput(result)
+      return
+    }
+
+    const stdout = filterFailedStepOutput(result.status, result.output.stdout)
+    const stderr = result.output.stderr
+    const combined = [stdout, stderr].filter((s) => s.trim().length > 0).join('\n')
+    const lines = combined.split(/\r?\n/u)
+
+    if (lines.length === 0) {
+      return
+    }
+
+    // Short output: show everything (using pre-filtered stdout).
+    if (lines.length <= MAX_FULL_OUTPUT_LINES) {
+      this.printFullOutput(result, stdout, stderr)
+      return
+    }
+
+    const isFailed = result.status === 'failed' || result.status === 'timed_out'
+
+    // For failures, try error line extraction first.
+    if (isFailed) {
+      const errorLines = extractErrorLines(lines)
+
+      if (errorLines.length > 0) {
+        process.stdout.write(colorize('  failures:\n', 'red'))
+
+        const shown = errorLines.slice(0, MAX_ERROR_LINES)
+        process.stdout.write(indent(shown.join('\n')))
+        process.stdout.write('\n')
+
+        const hidden = lines.length - errorLines.length
+        const truncated = errorLines.length - shown.length
+        if (hidden > 0 || truncated > 0) {
+          const totalHidden = hidden + truncated
+          process.stdout.write(
+            colorize(
+              `  ... (${totalHidden} more lines not shown, use --verbose for full output)\n`,
+              'yellow'
+            )
+          )
+        }
+        return
+      }
+    }
+
+    // Fallback: show tail of output (error output usually trails).
+    const tail = lines.slice(-Math.floor(MAX_FULL_OUTPUT_LINES * 0.75))
+    process.stdout.write(
+      colorize(`  output (last ${tail.length} of ${lines.length} lines):\n`, 'yellow')
+    )
+    process.stdout.write(indent(tail.join('\n')))
+    process.stdout.write('\n')
+    process.stdout.write(
+      colorize(
+        `  ... (${lines.length - tail.length} lines hidden, use --verbose for full output)\n`,
+        'yellow'
+      )
+    )
+  }
 }
+
+// ---------------------------------------------------------------------------
+// Output filtering helpers
+// ---------------------------------------------------------------------------
 
 const filterFailedStepOutput = (status: StepResult['status'], stdout: string): string => {
   if (status !== 'failed') {
@@ -246,4 +349,139 @@ const extractMissingScript = (result: StepResult): string | null => {
   }
 
   return match[1]
+}
+
+// ---------------------------------------------------------------------------
+// Error line extraction — keeps only lines that look like failures
+// ---------------------------------------------------------------------------
+
+/**
+ * Patterns that indicate a line is error-relevant.
+ *
+ * These cover common output from linters, type checkers, test runners,
+ * build tools, and Node.js runtime errors.
+ */
+const ERROR_LINE_PATTERNS: readonly RegExp[] = [
+  // TypeScript / ESLint / linter diagnostics
+  /\berror\b/i,
+  /\bwarning\b/i,
+
+  // Test runner failures
+  /\bFAIL\b/,
+  /\bfail(?:ed|ure|ing)\b/i,
+  /\bassert(?:ion)?\b/i,
+
+  // Runtime / system errors
+  /\bTypeError\b/,
+  /\bReferenceError\b/,
+  /\bSyntaxError\b/,
+  /\bRangeError\b/,
+  /\bEvalError\b/,
+  /\bURIError\b/,
+  /\bAggregateError\b/,
+  /\bInternalError\b/,
+  /\buncaught\b/i,
+  /\bthrow(?:n|s)?\b/i,
+  /\bCannot\b/,
+  /\bcannot\b/,
+  /\binvalid\b/i,
+  /\bexpected\b/i,
+  /\breceived\b/i,
+  /\bunexpected\b/i,
+  /\bundefined\b/i,
+  /\bnull\b.*\breference\b/i,
+  /\bnot\s+(?:found|defined|a\s+function|supported|allowed|permitted|installed)\b/i,
+
+  // POSIX / Node.js error codes
+  /\bERR_/,
+  /\bELIFECYCLE\b/,
+  /\bENOENT\b/,
+  /\bEACCES\b/,
+  /\bEPERM\b/,
+  /\bECONNREFUSED\b/,
+  /\bETIMEDOUT\b/,
+  /\bENOTEMPTY\b/,
+  /\bEEXIST\b/,
+
+  // Process exit
+  /\bExit status\b/i,
+  /\bexited with\b/i,
+  /\bnon-zero exit\b/i,
+  /\breturned exit code\b/i,
+
+  // Build tool failures
+  /\bCommand failed\b/i,
+  /\bbuild failed\b/i,
+  /\bcompilation failed\b/i,
+  /\bBuild failed\b/,
+  /\babort(?:ed|ing)\b/i,
+  /\brollback\b/i,
+  /\bpanic\b/i,
+
+  // General failure markers
+  /\bFailed\b/,
+  /\bfatal\b/i,
+  /\bmissing\b/i,
+  /\bunresolved\b/i,
+  /\bunhandled\b/i,
+  /\brejection\b/i,
+  /\bstderr\b/i,
+  /\bsegmentation fault\b/i,
+  /\bstack trace\b/i,
+  /\btraceback\b/i,
+]
+
+/** Success-indicator lines that should never be treated as errors. */
+const SUPPRESS_PATTERNS: readonly RegExp[] = [/: Done$/, /^\s*$/, /^Done\b/, /^> /, /^Scope:/]
+
+/**
+ * Extracts error-relevant lines from output including brief leading context.
+ *
+ * Each line is tested against {@link ERROR_LINE_PATTERNS}. When a hit is
+ * found, up to {@link ERROR_CONTEXT_LINES} preceding lines are also included
+ * so the error is easier to understand.
+ *
+ * @param lines - All output lines to scan.
+ * @returns Filtered lines with error context, or empty array when nothing matches.
+ */
+const extractErrorLines = (lines: readonly string[]): string[] => {
+  const errorIndices = new Set<number>()
+
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i] ?? ''
+
+    // Skip blank lines and obvious non-error lines.
+    if (line.trim().length === 0) {
+      continue
+    }
+
+    if (isSuppressedLine(line)) {
+      continue
+    }
+
+    if (ERROR_LINE_PATTERNS.some((pattern) => pattern.test(line))) {
+      errorIndices.add(i)
+
+      // Include brief leading context.
+      for (let context = 1; context <= ERROR_CONTEXT_LINES; context += 1) {
+        const ctxIndex = i - context
+        if (ctxIndex >= 0 && !isSuppressedLine(lines[ctxIndex] ?? '')) {
+          errorIndices.add(ctxIndex)
+        }
+      }
+    }
+  }
+
+  if (errorIndices.size === 0) {
+    return []
+  }
+
+  return [...errorIndices].sort((a, b) => a - b).map((index) => lines[index] ?? '')
+}
+
+/**
+ * Checks whether a line looks like a harmless success / progress message.
+ */
+const isSuppressedLine = (line: string): boolean => {
+  return SUPPRESS_PATTERNS.some((pattern) => pattern.test(line))
 }
