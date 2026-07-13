@@ -9,11 +9,12 @@
 
 ## Local Release Dry-Run
 
-1. Run full validation:
+1. Bump the version in `packages/ci-runner-cli/package.json` and add release notes to `CHANGELOG.md`.
+2. Run full validation:
    - `pnpm run check:release`
-2. Build pack artifacts for publishable packages (no publish):
+3. Build pack artifacts for publishable packages (no publish):
    - `pnpm run release:dry-run`
-3. Inspect generated tarballs:
+4. Inspect generated tarballs:
    - `.artifacts/packs/*.tgz`
 
 ## CI Release Dry-Run

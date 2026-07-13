@@ -4,6 +4,28 @@ All notable changes to this project are documented in this file.
 
 The format follows Keep a Changelog principles and uses semantic versioning for published artifacts.
 
+## [0.4.0] - 2026-07-13
+
+### Added
+
+- Command results now include a text-independent termination classification: successful exit, non-zero exit, signal termination, timeout, or process creation failure.
+- JSON results expose termination details, including exit code, signal, and spawn error code where available.
+- Output capture can be disabled or limited per stream; truncated capture is marked with `outputTruncated`.
+- Tool-specific output metrics are opt-in through `output.parseMetrics`.
+- Steps support `pipefail: true` for Bash pipelines and terminate their POSIX process group on timeout.
+- Retry behavior can be configured independently for timeouts, signal termination, and spawn failures.
+- Pretty failure summaries now list each failed package together with its failed package script.
+
+### Changed
+
+- Self-CI runs the locally built CLI by default; published-runner checks remain explicit via `ci:self:published*`.
+- Added `ci:dist:quick` to run Quick Checks against an existing local CLI build without rebuilding it.
+- Pretty failure labels use clear `Step: failed` wording.
+
+### Fixed
+
+- Local CLI builds correctly type-check the new output capture, shell execution, and package-summary behavior.
+
 ## [0.3.0] - 2026-06-30
 
 ### Added

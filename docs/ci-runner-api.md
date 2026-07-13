@@ -23,7 +23,10 @@
   "cwd": ".",
   "output": {
     "format": "pretty",
-    "verbose": false
+    "verbose": false,
+    "parseMetrics": false,
+    "captureOutput": true,
+    "maxOutputBytes": 1048576
   },
   "steps": [
     {
@@ -33,10 +36,13 @@
       "enabled": true,
       "timeoutMs": 60000,
       "optional": false,
+      "pipefail": true,
       "retry": {
         "maxAttempts": 2,
         "delayMs": 250,
-        "retryOnTimeout": false
+        "retryOnTimeout": false,
+        "retryOnSignal": false,
+        "retryOnSpawnFailure": false
       },
       "when": {
         "env": {
@@ -52,6 +58,10 @@ Step controls:
 
 - `enabled` (default `true`): include or exclude a step without deleting it from config.
 - `optional` (default `false`): failed step becomes `skipped` and does not fail the run.
+- `pipefail` (default `false`): execute the step with Bash `pipefail` so every command in a shell pipeline contributes to the result.
+- `captureOutput` (step or `output` default): disable stdout/stderr retention without affecting status evaluation.
+- `maxOutputBytes` (step or `output` default): cap each captured stream and mark the result as truncated.
+- `retryOnTimeout`, `retryOnSignal`, and `retryOnSpawnFailure` default to `false`; non-zero exits remain retryable by default.
 
 Typed TypeScript variant:
 
@@ -82,4 +92,6 @@ export default config
 ## Output Contracts
 
 - `pretty`: compact success output, detailed failure output.
-- `json`: full machine-readable run result (`steps`, `summary`, `exitCode`, timestamps).
+- `json`: full machine-readable run result (`steps`, `summary`, `exitCode`, timestamps, and per-step termination details).
+
+Each step result contains a text-independent termination classification: `succeeded`, `exited_nonzero`, `terminated_by_signal`, `timed_out`, or `spawn_failed`. Optional output parsing only enriches `metrics`; it never affects status, retries, or the final exit code.

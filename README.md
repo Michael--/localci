@@ -33,6 +33,8 @@ pnpm run test
 - `pnpm run smoke`
 - `pnpm run ci:self`
 - `pnpm run ci:self:watch`
+- `pnpm run ci:dist:quick` (run Quick Checks against the existing local CLI build)
+- `pnpm run ci:self:published` (explicitly validate the published CLI package)
 
 ## CLI Package
 

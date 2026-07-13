@@ -18,8 +18,8 @@ importers:
         specifier: ^9.39.2
         version: 9.39.2
       '@number10/ci-runner-cli':
-        specifier: ^0.2.0
-        version: 0.2.0
+        specifier: ^0.4.0
+        version: 0.4.0
       '@types/node':
         specifier: ^25.2.1
         version: 25.2.1
@@ -609,8 +609,8 @@ packages:
   '@jridgewell/sourcemap-codec@1.5.5':
     resolution: {integrity: sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og==}
 
-  '@number10/ci-runner-cli@0.2.0':
-    resolution: {integrity: sha512-5X7n0GedULSBIpPh19O0mmSn88/nEmAINiGyLanStzZkp2qTTrVcnkGUkUgygz53yjVYwgdqnSJv5E9dprHFHw==}
+  '@number10/ci-runner-cli@0.4.0':
+    resolution: {integrity: sha512-2SRgT4gLiGW8qYSw6ZPQM1IyQ4DK01NU8z4Lb0k9N7ueVQeuIu+Gkvm9Mh7n0bF320eTY4H7njAVv8Htlgs1gw==}
     engines: {node: '>=20.19.0', pnpm: '>=10.28.1'}
     hasBin: true
 
@@ -2323,7 +2323,7 @@ snapshots:
 
   '@jridgewell/sourcemap-codec@1.5.5': {}
 
-  '@number10/ci-runner-cli@0.2.0':
+  '@number10/ci-runner-cli@0.4.0':
     dependencies:
       typescript: 5.9.3
 
