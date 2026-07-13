@@ -35,8 +35,8 @@ export interface PrettyReporterOptions {
 export class PrettyReporter implements PipelineReporter {
   private readonly options: PrettyReporterOptions
 
-  /** Step id → failing project names extracted during onStepComplete. */
-  private readonly failingProjects = new Map<string, readonly string[]>()
+  /** Step id → failing package checks extracted during onStepComplete. */
+  private readonly failingPackageChecks = new Map<string, readonly FailingPackageCheck[]>()
 
   /**
    * Creates a pretty reporter.
@@ -75,10 +75,10 @@ export class PrettyReporter implements PipelineReporter {
   public onStepComplete(result: StepResult): void {
     const duration = `${result.durationMs}ms`
 
-    // Extract failing projects from the raw (unfiltered) output while
+    // Extract failed package checks from the raw (unfiltered) output while
     // we have full access to it — used later in the pipeline summary.
     if (result.status === 'failed' || result.status === 'timed_out') {
-      this.failingProjects.set(result.id, extractFailingProjectsFromOutput(result))
+      this.failingPackageChecks.set(result.id, extractFailingPackageChecks(result))
     }
 
     if (result.status === 'passed') {
@@ -115,7 +115,7 @@ export class PrettyReporter implements PipelineReporter {
 
     process.stdout.write(
       colorize(
-        `✗ ${result.name} ${result.status} (${result.reason ?? 'no reason'}, ${duration})\n`,
+        `✗ ${result.name}: ${formatFailureStatus(result.status)} (${result.reason ?? 'no reason'}, ${duration})\n`,
         'red'
       )
     )
@@ -159,22 +159,21 @@ export class PrettyReporter implements PipelineReporter {
     process.stdout.write(colorize('Result: FAIL\n', 'red'))
   }
 
-  /**
-   * Formats a single failing/timed-out step as a summary line with project names and count.
-   *
-   * Examples:
-   *   `  Build failed(1) (apps/test-ui)\n`
-   *   `  Typecheck failed(2) (apps/test-ui, packages/core)\n`
-   *   `  Deploy timed_out\n`
-   */
+  /** Formats a step summary and its failed package checks when available. */
   private formatFailedStepSummary(step: StepResult, status: string): string {
-    const projects = this.failingProjects.get(step.id)
-    if (!projects || projects.length === 0) {
-      return `  ${step.name} ${status}\n`
+    const statusLabel = formatFailureStatus(status)
+    const packageChecks = this.failingPackageChecks.get(step.id)
+    if (!packageChecks || packageChecks.length === 0) {
+      return `  ${step.name}: ${statusLabel}\n`
     }
 
-    const count = projects.length > 1 ? `${status}(${projects.length})` : status
-    return `  ${step.name} ${count} (${projects.join(', ')})\n`
+    const lines = packageChecks.map((packageCheck) => {
+      const checkName = packageCheck.checkName ?? step.name
+      return `    ${packageCheck.packagePath}: ${checkName} ${statusLabel}`
+    })
+
+    const packageLabel = packageChecks.length === 1 ? 'package' : 'packages'
+    return `  ${step.name}: ${statusLabel} (${packageChecks.length} ${packageLabel})\n${lines.join('\n')}\n`
   }
 
   /**
@@ -406,12 +405,16 @@ const extractMissingScript = (result: StepResult): string | null => {
   return match[1]
 }
 
+const formatFailureStatus = (status: string): string => {
+  return status === 'timed_out' ? 'timed out' : status
+}
+
 // ---------------------------------------------------------------------------
 // Failing project extraction — for step-level failure attribution
 // ---------------------------------------------------------------------------
 
 /**
- * Extracts failing project / package names from raw step output.
+ * Extracts failed package checks from raw step output.
  *
  * Called during {@link PrettyReporter.onStepComplete} while the
  * unfiltered stdout/stderr is still fully available.
@@ -421,18 +424,21 @@ const extractMissingScript = (result: StepResult): string | null => {
  * 2. Scan error-pattern lines for project-like path prefixes.
  *
  * @param result Step result with captured stdout/stderr.
- * @returns Deduplicated, sorted short project names.
+ * @returns Deduplicated, sorted package check details.
  */
-const extractFailingProjectsFromOutput = (result: StepResult): string[] => {
+const extractFailingPackageChecks = (result: StepResult): readonly FailingPackageCheck[] => {
   const combined = `${result.output.stdout}\n${result.output.stderr}`
   const lines = combined.split(/\r?\n/u)
-  const projects = new Set<string>()
+  const packageChecks = new Map<string, FailingPackageCheck>()
 
   // 1. Pnpm recursive format: `project/path script: Failed`
   for (const line of lines) {
     const parsed = parseFailedRecursiveExecution(line)
     if (parsed) {
-      projects.add(parsed.projectPath)
+      packageChecks.set(`${parsed.projectPath}\u0000${parsed.scriptName}`, {
+        packagePath: parsed.projectPath,
+        checkName: parsed.scriptName,
+      })
     }
   }
 
@@ -445,13 +451,28 @@ const extractFailingProjectsFromOutput = (result: StepResult): string[] => {
       )
       if (projectMatch?.groups?.project) {
         if (projectMatch.groups.project.includes('/')) {
-          projects.add(projectMatch.groups.project)
+          const packagePath = projectMatch.groups.project
+          if (![...packageChecks.values()].some((entry) => entry.packagePath === packagePath)) {
+            packageChecks.set(packagePath, { packagePath })
+          }
         }
       }
     }
   }
 
-  return [...projects].sort()
+  return [...packageChecks.values()].sort((left, right) => {
+    const packageOrder = left.packagePath.localeCompare(right.packagePath)
+    return packageOrder !== 0
+      ? packageOrder
+      : (left.checkName ?? '').localeCompare(right.checkName ?? '')
+  })
+}
+
+interface FailingPackageCheck {
+  /** Workspace-relative package path. */
+  readonly packagePath: string
+  /** Package script that failed, if known from tool output. */
+  readonly checkName?: string
 }
 
 // ---------------------------------------------------------------------------

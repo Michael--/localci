@@ -92,12 +92,12 @@ describe('ci-runner-cli smoke', () => {
       [
         'ci-runner v<version>: executing 1 steps',
         '-> Failing Check',
-        '✗ Failing Check failed (command_failed, <duration>)',
+        '✗ Failing Check: failed (command_failed, <duration>)',
         '  stderr:',
         '    optional step failed intentionally',
         '',
         'Summary: total=1 passed=0 skipped=0 failed=1 timedOut=0 duration=<duration>',
-        '  Failing Check failed',
+        '  Failing Check: failed',
         'Result: FAIL',
       ].join('\n')
     )

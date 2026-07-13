@@ -430,9 +430,9 @@ describe('PrettyReporter', () => {
 
     expect(output).toContain('failed=2')
     expect(output).toContain('timedOut=1')
-    expect(output).toContain('Typecheck failed')
-    expect(output).toContain('Test failed')
-    expect(output).toContain('Integration timed_out')
+    expect(output).toContain('Typecheck: failed')
+    expect(output).toContain('Test: failed')
+    expect(output).toContain('Integration: timed out')
     expect(output).toContain('Result: FAIL')
   })
 
@@ -477,7 +477,7 @@ describe('PrettyReporter', () => {
 
   // -- project extraction in summary ------------------------------------
 
-  it('extracts failing pnpm project names into summary', () => {
+  it('lists failing package checks in the summary', () => {
     const reporter = new PrettyReporter({ verbose: false, version: '0.0.0-test' })
     const result = createPipelineResult({
       steps: [
@@ -528,8 +528,11 @@ describe('PrettyReporter', () => {
     })
 
     expect(output).toContain('failed=2')
-    expect(output).toContain('Build failed (apps/test-ui)')
-    expect(output).toContain('Typecheck failed(2) (apps/test-ui, packages/components)')
+    expect(output).toContain('Build: failed (1 package)')
+    expect(output).toContain('apps/test-ui: build failed')
+    expect(output).toContain('Typecheck: failed (2 packages)')
+    expect(output).toContain('apps/test-ui: typecheck failed')
+    expect(output).toContain('packages/components: typecheck failed')
   })
 
   it('shows step names only when no project info is in output', () => {
