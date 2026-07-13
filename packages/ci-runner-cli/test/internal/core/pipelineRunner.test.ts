@@ -126,6 +126,43 @@ describe('PipelineRunner', () => {
     expect(result.exitCode).toBe(1)
     expect(result.steps[0]?.status).toBe('timed_out')
     expect(result.steps[0]?.reason).toBe('command_timeout')
+    expect(result.steps[0]?.termination.kind).toBe('timed_out')
+  })
+
+  it('classifies signal and spawn failures without reading process output', async () => {
+    const runner = createPipelineRunner({
+      steps: [
+        { id: 'signal', name: 'Signal', command: 'signal' },
+        { id: 'spawn', name: 'Spawn', command: 'spawn' },
+      ],
+      executor: createSequenceExecutor([
+        {
+          ...failedResult(),
+          exitCode: null,
+          signal: 'SIGTERM',
+          stdout: '',
+          stderr: '',
+        },
+        {
+          ...failedResult(),
+          exitCode: null,
+          stdout: '',
+          stderr: '',
+          error: Object.assign(new Error('not started'), { code: 'ENOENT' }),
+        },
+      ]),
+    })
+
+    const result = await runner.run()
+
+    expect(result.steps.map((step) => step.reason)).toEqual([
+      'command_signaled',
+      'command_spawn_failed',
+    ])
+    expect(result.steps.map((step) => step.termination.kind)).toEqual([
+      'terminated_by_signal',
+      'spawn_failed',
+    ])
   })
 
   it('stops after first hard failure when continueOnError is false', async () => {

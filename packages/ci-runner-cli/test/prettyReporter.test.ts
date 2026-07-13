@@ -29,6 +29,7 @@ const createFailedStepResult = (
       stdout: stdoutLines.join('\n'),
       stderr: '',
     },
+    termination: { kind: 'exited_nonzero', exitCode: 1, signal: null },
     metrics: null,
     ...overrides,
   }
@@ -51,6 +52,7 @@ const createPassedStepResult = (stdoutLines: readonly string[]): StepResult => {
       stdout: stdoutLines.join('\n'),
       stderr: '',
     },
+    termination: { kind: 'succeeded', exitCode: 0, signal: null },
     metrics: null,
   }
 }
@@ -72,6 +74,7 @@ const createSkippedStepResult = (stdoutLines: readonly string[]): StepResult => 
       stdout: stdoutLines.join('\n'),
       stderr: '',
     },
+    termination: { kind: 'exited_nonzero', exitCode: 1, signal: null },
     metrics: null,
   }
 }
@@ -93,6 +96,7 @@ const createTimedOutStepResult = (stdoutLines: readonly string[]): StepResult =>
       stdout: stdoutLines.join('\n'),
       stderr: '',
     },
+    termination: { kind: 'timed_out', exitCode: null, signal: null },
     metrics: null,
   }
 }
@@ -147,6 +151,16 @@ const createPipelineResult = (opts: { steps: readonly StepStub[] }): PipelineRun
       signal: null,
       stdout: s.stdout ?? '',
       stderr: '',
+    },
+    termination: {
+      kind:
+        s.status === 'passed'
+          ? 'succeeded'
+          : s.status === 'timed_out'
+            ? 'timed_out'
+            : 'exited_nonzero',
+      exitCode: s.status === 'passed' ? 0 : 1,
+      signal: null,
     },
     metrics: null,
   }))

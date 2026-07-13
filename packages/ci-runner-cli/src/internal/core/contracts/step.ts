@@ -1,4 +1,5 @@
 import type { ParsedStepMetrics } from './parser.js'
+import type { CommandTermination } from './executor.js'
 
 /**
  * Terminal status of a pipeline step.
@@ -8,7 +9,12 @@ export type StepStatus = 'passed' | 'failed' | 'skipped' | 'timed_out'
 /**
  * Failure or skip reason assigned to a step result.
  */
-export type StepResultReason = 'command_failed' | 'command_timeout' | 'optional_step_failed'
+export type StepResultReason =
+  | 'command_failed'
+  | 'command_signaled'
+  | 'command_spawn_failed'
+  | 'command_timeout'
+  | 'optional_step_failed'
 
 /**
  * Retry behavior for a step.
@@ -82,6 +88,8 @@ export interface StepResult {
   readonly durationMs: number
   /** Captured process output from the last execution attempt. */
   readonly output: StepExecutionOutput
+  /** Text-independent termination details from the last execution attempt. */
+  readonly termination: CommandTermination
   /** Optional structured metrics parsed from process output. */
   readonly metrics: ParsedStepMetrics | null
 }

@@ -2,6 +2,8 @@ export type {
   CommandExecutionRequest,
   CommandExecutionResult,
   CommandExecutor,
+  CommandTermination,
+  CommandTerminationKind,
 } from './contracts/executor.js'
 export type { ParsedStepMetrics, StepOutputParser, StepParserResolver } from './contracts/parser.js'
 export type { PipelineReporter } from './contracts/reporter.js'

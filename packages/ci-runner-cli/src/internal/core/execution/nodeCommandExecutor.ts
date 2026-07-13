@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process'
 
 import type {
+  CommandTermination,
   CommandExecutionRequest,
   CommandExecutionResult,
   CommandExecutor,
@@ -61,7 +62,8 @@ export const createNodeCommandExecutor = (): CommandExecutor => {
         }
 
         const durationMs = Date.now() - startedAt
-        const successful = !timedOut && exitCode === 0 && error === undefined
+        const termination = createTermination(timedOut, exitCode, signal, error)
+        const successful = termination.kind === 'succeeded'
 
         resolve({
           successful,
@@ -69,6 +71,7 @@ export const createNodeCommandExecutor = (): CommandExecutor => {
           durationMs,
           exitCode,
           signal,
+          termination,
           stdout,
           stderr,
           error,
@@ -76,4 +79,43 @@ export const createNodeCommandExecutor = (): CommandExecutor => {
       })
     })
   }
+}
+
+const createTermination = (
+  timedOut: boolean,
+  exitCode: number | null,
+  signal: NodeJS.Signals | null,
+  error: unknown
+): CommandTermination => {
+  if (timedOut) {
+    return { kind: 'timed_out', exitCode, signal }
+  }
+
+  if (error !== undefined) {
+    return {
+      kind: 'spawn_failed',
+      exitCode,
+      signal,
+      errorCode: getErrorCode(error),
+    }
+  }
+
+  if (signal) {
+    return { kind: 'terminated_by_signal', exitCode, signal }
+  }
+
+  if (exitCode === 0) {
+    return { kind: 'succeeded', exitCode, signal }
+  }
+
+  return { kind: 'exited_nonzero', exitCode, signal }
+}
+
+const getErrorCode = (error: unknown): string | undefined => {
+  if (typeof error !== 'object' || error === null || !('code' in error)) {
+    return undefined
+  }
+
+  const code = error.code
+  return typeof code === 'string' ? code : undefined
 }

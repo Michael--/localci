@@ -1,6 +1,30 @@
 import type { StepExecutionOutput } from './step.js'
 
 /**
+ * Machine-readable reason why a command execution ended.
+ */
+export type CommandTerminationKind =
+  | 'succeeded'
+  | 'exited_nonzero'
+  | 'terminated_by_signal'
+  | 'timed_out'
+  | 'spawn_failed'
+
+/**
+ * Text-independent command termination details.
+ */
+export interface CommandTermination {
+  /** Classification of the command completion. */
+  readonly kind: CommandTerminationKind
+  /** Process exit code when the process exited normally. */
+  readonly exitCode: number | null
+  /** Signal that ended the process, if any. */
+  readonly signal: NodeJS.Signals | null
+  /** Operating-system error code when process creation failed. */
+  readonly errorCode?: string
+}
+
+/**
  * Input contract for command execution.
  */
 export interface CommandExecutionRequest {
@@ -18,6 +42,8 @@ export interface CommandExecutionRequest {
  * Output contract from one command execution.
  */
 export interface CommandExecutionResult extends StepExecutionOutput {
+  /** Canonical, text-independent completion details. */
+  readonly termination?: CommandTermination
   /** True when command reached timeout handling path. */
   readonly timedOut: boolean
   /** Total command duration in milliseconds. */

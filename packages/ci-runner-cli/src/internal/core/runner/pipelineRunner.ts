@@ -1,4 +1,4 @@
-import type { CommandExecutionResult } from '../contracts/executor.js'
+import type { CommandExecutionResult, CommandTermination } from '../contracts/executor.js'
 import type { PipelineRunOptions, PipelineRunResult, PipelineSummary } from '../contracts/run.js'
 import type { PipelineStep, StepResult, StepResultReason, StepStatus } from '../contracts/step.js'
 
@@ -162,6 +162,28 @@ export class PipelineRunner {
       })
     }
 
+    if (getTermination(output).kind === 'terminated_by_signal') {
+      return this.buildStepResult({
+        step,
+        status: 'failed',
+        reason: 'command_signaled',
+        attempts,
+        startedAt,
+        output,
+      })
+    }
+
+    if (getTermination(output).kind === 'spawn_failed') {
+      return this.buildStepResult({
+        step,
+        status: 'failed',
+        reason: 'command_spawn_failed',
+        attempts,
+        startedAt,
+        output,
+      })
+    }
+
     return this.buildStepResult({
       step,
       status: 'failed',
@@ -199,6 +221,7 @@ export class PipelineRunner {
         stdout: input.output.stdout,
         stderr: input.output.stderr,
       },
+      termination: getTermination(input.output),
       metrics,
     }
   }
@@ -285,5 +308,29 @@ const createFallbackExecutionResult = (): CommandExecutionResult => {
     signal: null,
     stdout: '',
     stderr: '',
+  }
+}
+
+const getTermination = (execution: CommandExecutionResult): CommandTermination => {
+  if (execution.termination) {
+    return execution.termination
+  }
+
+  if (execution.timedOut) {
+    return { kind: 'timed_out', exitCode: execution.exitCode, signal: execution.signal }
+  }
+
+  if (execution.error !== undefined) {
+    return { kind: 'spawn_failed', exitCode: execution.exitCode, signal: execution.signal }
+  }
+
+  if (execution.signal) {
+    return { kind: 'terminated_by_signal', exitCode: execution.exitCode, signal: execution.signal }
+  }
+
+  return {
+    kind: execution.exitCode === 0 ? 'succeeded' : 'exited_nonzero',
+    exitCode: execution.exitCode,
+    signal: execution.signal,
   }
 }
