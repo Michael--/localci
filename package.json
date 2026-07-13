@@ -20,6 +20,7 @@
     "spell": "cspell \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "smoke": "pnpm --filter @number10/ci-runner-smoke run smoke:json",
     "ci:self": "pnpm run ci:self:local",
+    "ci:dist:quick": "node packages/ci-runner-cli/dist/cli.js --target quick",
     "ci:self:watch": "pnpm run ci:self:local:watch",
     "ci:self:ci": "pnpm run ci:self:local:ci",
     "ci:self:release": "pnpm run ci:self:local:release",
