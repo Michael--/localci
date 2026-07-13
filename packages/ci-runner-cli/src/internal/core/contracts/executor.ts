@@ -36,6 +36,10 @@ export interface CommandExecutionRequest {
   readonly env: NodeJS.ProcessEnv
   /** Optional process timeout in milliseconds. */
   readonly timeoutMs?: number
+  /** Disables stdout and stderr capture when false. */
+  readonly captureOutput?: boolean
+  /** Maximum captured stdout and stderr bytes per stream. */
+  readonly maxOutputBytes?: number
 }
 
 /**

@@ -77,7 +77,9 @@ export const runCliPipeline = async (options: RunCliPipelineOptions): Promise<nu
       options.target
     )
     printExcludedStepHints(mappedRun.excludedSteps, effectiveFormat)
-    const parserRegistry = new StepParserRegistry(createDefaultStepParsers())
+    const parserRegistry = new StepParserRegistry(
+      loadedConfig.config.output?.parseMetrics ? createDefaultStepParsers() : []
+    )
 
     const runner = createPipelineRunner({
       ...mappedRun,

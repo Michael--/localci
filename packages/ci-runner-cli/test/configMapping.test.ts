@@ -92,6 +92,33 @@ describe('mapConfigToRun', () => {
     expect(runConfig.continueOnError).toBe(false)
   })
 
+  it('maps output capture limits with per-step overrides', () => {
+    const config: CiRunnerConfig = {
+      output: {
+        captureOutput: false,
+        maxOutputBytes: 1024,
+      },
+      steps: [
+        {
+          id: 'build',
+          name: 'Build',
+          command: 'pnpm run build',
+          captureOutput: true,
+          maxOutputBytes: 128,
+        },
+      ],
+    }
+
+    const runConfig = mapConfigToRun(config, baseCwd, false)
+
+    expect(runConfig.captureOutput).toBe(false)
+    expect(runConfig.maxOutputBytes).toBe(1024)
+    expect(runConfig.steps[0]).toMatchObject({
+      captureOutput: true,
+      maxOutputBytes: 128,
+    })
+  })
+
   it('maps only the selected target steps', () => {
     const config: CiRunnerConfig = {
       steps: [

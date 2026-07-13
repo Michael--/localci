@@ -87,7 +87,10 @@ Example:
   "cwd": ".",
   "output": {
     "format": "pretty",
-    "verbose": false
+    "verbose": false,
+    "parseMetrics": false,
+    "captureOutput": true,
+    "maxOutputBytes": 1048576
   },
   "watch": {
     "exclude": ["**/*.log", "packages/ci-runner-cli/generated/**"]
@@ -247,6 +250,9 @@ Profiles are command-line presets often used by integrations (for example the VS
 
 - `pretty`: concise success output, detailed failure diagnostics.
 - `json`: full run payload with step results, summary, timestamps, and exit code.
+- `parseMetrics` defaults to `false`; enable it only when tool-specific output metrics are useful.
+- `captureOutput` can disable stdout/stderr retention without affecting the pipeline result.
+- `maxOutputBytes` limits each captured stream and sets `outputTruncated` when reached.
 
 ## Exit Behavior
 

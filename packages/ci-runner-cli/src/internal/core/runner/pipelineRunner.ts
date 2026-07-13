@@ -89,6 +89,8 @@ export class PipelineRunner {
         cwd: step.cwd ?? this.options.cwd ?? process.cwd(),
         env: mergedEnv,
         timeoutMs: step.timeoutMs,
+        captureOutput: step.captureOutput ?? this.options.captureOutput,
+        maxOutputBytes: step.maxOutputBytes ?? this.options.maxOutputBytes,
       })
 
       lastExecution = execution
@@ -220,6 +222,7 @@ export class PipelineRunner {
         signal: input.output.signal,
         stdout: input.output.stdout,
         stderr: input.output.stderr,
+        outputTruncated: input.output.outputTruncated,
       },
       termination: getTermination(input.output),
       metrics,

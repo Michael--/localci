@@ -27,6 +27,7 @@ export const createNodeCommandExecutor = (): CommandExecutor => {
 
       let stdout = ''
       let stderr = ''
+      let outputTruncated = false
       let timedOut = false
       let error: unknown
       let closed = false
@@ -40,11 +41,15 @@ export const createNodeCommandExecutor = (): CommandExecutor => {
           : null
 
       child.stdout.on('data', (chunk: Buffer) => {
-        stdout += chunk.toString('utf8')
+        const captured = captureChunk(stdout, chunk, request.captureOutput, request.maxOutputBytes)
+        stdout = captured.output
+        outputTruncated ||= captured.truncated
       })
 
       child.stderr.on('data', (chunk: Buffer) => {
-        stderr += chunk.toString('utf8')
+        const captured = captureChunk(stderr, chunk, request.captureOutput, request.maxOutputBytes)
+        stderr = captured.output
+        outputTruncated ||= captured.truncated
       })
 
       child.on('error', (spawnError: Error) => {
@@ -74,10 +79,40 @@ export const createNodeCommandExecutor = (): CommandExecutor => {
           termination,
           stdout,
           stderr,
+          outputTruncated,
           error,
         })
       })
     })
+  }
+}
+
+const captureChunk = (
+  output: string,
+  chunk: Buffer,
+  captureOutput: boolean | undefined,
+  maxOutputBytes: number | undefined
+): { readonly output: string; readonly truncated: boolean } => {
+  if (captureOutput === false) {
+    return { output, truncated: false }
+  }
+
+  if (typeof maxOutputBytes !== 'number' || maxOutputBytes < 0) {
+    return { output: output + chunk.toString('utf8'), truncated: false }
+  }
+
+  const remainingBytes = maxOutputBytes - Buffer.byteLength(output)
+  if (remainingBytes <= 0) {
+    return { output, truncated: true }
+  }
+
+  if (chunk.byteLength <= remainingBytes) {
+    return { output: output + chunk.toString('utf8'), truncated: false }
+  }
+
+  return {
+    output: output + chunk.subarray(0, remainingBytes).toString('utf8'),
+    truncated: true,
   }
 }
 

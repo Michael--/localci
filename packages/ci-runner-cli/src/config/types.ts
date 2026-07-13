@@ -60,6 +60,10 @@ export interface CliConfigStep {
   readonly optional?: boolean
   /** Step timeout in milliseconds. */
   readonly timeoutMs?: number
+  /** Disables stdout and stderr capture for this step when false. */
+  readonly captureOutput?: boolean
+  /** Maximum captured stdout and stderr bytes per stream. */
+  readonly maxOutputBytes?: number
   /** Retry policy for this step. */
   readonly retry?: StepRetryPolicy
   /** Optional execution condition. */
@@ -102,6 +106,12 @@ export interface CiRunnerConfig {
     readonly format?: CliOutputFormat
     /** Emits all step output on success when true. */
     readonly verbose?: boolean
+    /** Enables optional metric parsing from command output when true. */
+    readonly parseMetrics?: boolean
+    /** Disables stdout and stderr capture for all steps when false. */
+    readonly captureOutput?: boolean
+    /** Maximum captured stdout and stderr bytes per stream. */
+    readonly maxOutputBytes?: number
   }
   /** Watch-mode options for rerun filtering. */
   readonly watch?: CiRunnerWatchConfig

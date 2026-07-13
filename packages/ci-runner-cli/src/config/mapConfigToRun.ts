@@ -38,6 +38,10 @@ export interface MappedPipelineRunOptions {
   readonly env: NodeJS.ProcessEnv
   /** Continue after hard failures when true. */
   readonly continueOnError: boolean
+  /** Disables stdout and stderr capture for all steps when false. */
+  readonly captureOutput?: boolean
+  /** Maximum captured stdout and stderr bytes per stream. */
+  readonly maxOutputBytes?: number
 }
 
 /**
@@ -103,6 +107,8 @@ export const mapConfigToRun = (
     cwd: runCwd,
     env,
     continueOnError,
+    captureOutput: config.output?.captureOutput,
+    maxOutputBytes: config.output?.maxOutputBytes,
   }
 }
 
@@ -137,6 +143,8 @@ const mapStep = (step: CliConfigStep, runCwd: string): MappedPipelineStep => {
     env: step.env,
     optional: step.optional,
     timeoutMs: step.timeoutMs,
+    captureOutput: step.captureOutput,
+    maxOutputBytes: step.maxOutputBytes,
     retry: step.retry,
   }
 }

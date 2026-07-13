@@ -167,6 +167,8 @@ const parseConfigStep = (value: unknown, index: number): CliConfigStep => {
   const env = parseOptionalStringRecord(value.env, `steps[${index}].env`)
   const optional = parseOptionalBoolean(value.optional, `steps[${index}].optional`)
   const timeoutMs = parseOptionalNumber(value.timeoutMs, `steps[${index}].timeoutMs`)
+  const captureOutput = parseOptionalBoolean(value.captureOutput, `steps[${index}].captureOutput`)
+  const maxOutputBytes = parseOptionalNumber(value.maxOutputBytes, `steps[${index}].maxOutputBytes`)
   const retry = parseOptionalRetry(value.retry, `steps[${index}].retry`)
   const when = parseOptionalCondition(value.when, `steps[${index}].when`)
 
@@ -179,6 +181,8 @@ const parseConfigStep = (value: unknown, index: number): CliConfigStep => {
     env,
     optional,
     timeoutMs,
+    captureOutput,
+    maxOutputBytes,
     retry,
     when,
   }
@@ -199,10 +203,16 @@ const parseOutputConfig = (value: unknown): CiRunnerConfig['output'] | undefined
   }
 
   const verbose = parseOptionalBoolean(value.verbose, 'output.verbose')
+  const parseMetrics = parseOptionalBoolean(value.parseMetrics, 'output.parseMetrics')
+  const captureOutput = parseOptionalBoolean(value.captureOutput, 'output.captureOutput')
+  const maxOutputBytes = parseOptionalNumber(value.maxOutputBytes, 'output.maxOutputBytes')
 
   return {
     format,
     verbose,
+    parseMetrics,
+    captureOutput,
+    maxOutputBytes,
   }
 }
 

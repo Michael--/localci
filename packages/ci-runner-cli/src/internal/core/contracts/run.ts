@@ -53,6 +53,10 @@ export interface PipelineRunOptions {
   readonly cwd?: string
   /** Base environment merged into each step execution. */
   readonly env?: NodeJS.ProcessEnv
+  /** Disables stdout and stderr capture for all steps when false. */
+  readonly captureOutput?: boolean
+  /** Maximum captured stdout and stderr bytes per stream. */
+  readonly maxOutputBytes?: number
   /** Continue after non-optional failures when true. */
   readonly continueOnError?: boolean
   /** Time source injection for deterministic tests. */

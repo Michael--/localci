@@ -46,6 +46,10 @@ export interface PipelineStep {
   readonly optional?: boolean
   /** Optional timeout in milliseconds for one attempt. */
   readonly timeoutMs?: number
+  /** Disables stdout and stderr capture when false. */
+  readonly captureOutput?: boolean
+  /** Maximum captured stdout and stderr bytes per stream. */
+  readonly maxOutputBytes?: number
   /** Retry policy for transient failures. */
   readonly retry?: StepRetryPolicy
 }
@@ -62,6 +66,8 @@ export interface StepExecutionOutput {
   readonly stdout: string
   /** Captured stderr content. */
   readonly stderr: string
+  /** True when captured output exceeded its configured size limit. */
+  readonly outputTruncated?: boolean
 }
 
 /**

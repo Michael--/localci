@@ -89,6 +89,35 @@ describe('loadCiRunnerConfig', () => {
     expect(loaded.config.watch?.exclude).toEqual(['dist', '**/*.log'])
   })
 
+  it('loads output capture and metric parsing options', async () => {
+    const directory = await mkdtemp(resolve(tmpdir(), 'ci-runner-cli-output-'))
+    createdDirectories.push(directory)
+
+    await writeFile(
+      resolve(directory, 'ci.config.json'),
+      JSON.stringify({
+        output: {
+          parseMetrics: true,
+          captureOutput: false,
+          maxOutputBytes: 1024,
+        },
+        steps: [{ id: 'lint', name: 'Lint', command: 'pnpm run lint', captureOutput: true }],
+      }),
+      'utf8'
+    )
+
+    const loaded = await loadCiRunnerConfig(directory)
+
+    expect(loaded.config.output).toEqual({
+      format: undefined,
+      verbose: undefined,
+      parseMetrics: true,
+      captureOutput: false,
+      maxOutputBytes: 1024,
+    })
+    expect(loaded.config.steps[0]?.captureOutput).toBe(true)
+  })
+
   it('loads named targets from config', async () => {
     const directory = await mkdtemp(resolve(tmpdir(), 'ci-runner-cli-targets-'))
     createdDirectories.push(directory)
