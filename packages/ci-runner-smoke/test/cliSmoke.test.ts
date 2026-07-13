@@ -97,25 +97,28 @@ describe('ci-runner-cli smoke', () => {
         '    optional step failed intentionally',
         '',
         'Summary: total=1 passed=0 skipped=0 failed=1 timedOut=0 duration=<duration>',
-        '  failed: Failing Check',
+        '  Failing Check failed',
         'Result: FAIL',
       ].join('\n')
     )
   })
 
   it('extracts vitest and playwright metrics in json output', async () => {
-    const configFilePath = await writeSmokeConfig([
-      {
-        id: 'vitest-tests',
-        name: 'Vitest Tests',
-        command: `node ${JSON.stringify(resolve(stubsRoot, 'vitest-summary-step.cjs'))}`,
-      },
-      {
-        id: 'playwright-tests',
-        name: 'Playwright Tests',
-        command: `node ${JSON.stringify(resolve(stubsRoot, 'playwright-summary-step.cjs'))}`,
-      },
-    ])
+    const configFilePath = await writeSmokeConfig(
+      [
+        {
+          id: 'vitest-tests',
+          name: 'Vitest Tests',
+          command: `node ${JSON.stringify(resolve(stubsRoot, 'vitest-summary-step.cjs'))}`,
+        },
+        {
+          id: 'playwright-tests',
+          name: 'Playwright Tests',
+          command: `node ${JSON.stringify(resolve(stubsRoot, 'playwright-summary-step.cjs'))}`,
+        },
+      ],
+      { parseMetrics: true }
+    )
 
     const result = await runCli([
       '--config',
@@ -416,7 +419,10 @@ describe('ci-runner-cli smoke', () => {
   }, 20000)
 })
 
-const writeSmokeConfig = async (steps: readonly SmokeConfigStep[]): Promise<string> => {
+const writeSmokeConfig = async (
+  steps: readonly SmokeConfigStep[],
+  output?: { readonly parseMetrics?: boolean }
+): Promise<string> => {
   const configDirectory = await mkdtemp(resolve(tmpdir(), 'ci-runner-cli-smoke-'))
   createdDirectories.push(configDirectory)
 
@@ -426,6 +432,7 @@ const writeSmokeConfig = async (steps: readonly SmokeConfigStep[]): Promise<stri
     JSON.stringify(
       {
         steps,
+        ...(output ? { output } : {}),
       },
       null,
       2

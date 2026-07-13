@@ -20,6 +20,12 @@ export interface MappedPipelineStep {
   readonly optional?: boolean
   /** Step timeout in milliseconds. */
   readonly timeoutMs?: number
+  /** Disables stdout and stderr capture when false. */
+  readonly captureOutput?: boolean
+  /** Maximum captured stdout and stderr bytes per stream. */
+  readonly maxOutputBytes?: number
+  /** Makes shell pipelines fail when any command in the pipeline fails. */
+  readonly pipefail?: boolean
   /** Retry policy for this step. */
   readonly retry?: CliConfigStep['retry']
 }

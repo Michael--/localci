@@ -39,17 +39,31 @@ export const createNodeCommandExecutor = (): CommandExecutor => {
             }, request.timeoutMs)
           : null
 
-      child.stdout.on('data', (chunk: Buffer) => {
-        const captured = captureChunk(stdout, chunk, request.captureOutput, request.maxOutputBytes)
-        stdout = captured.output
-        outputTruncated ||= captured.truncated
-      })
+      if (child.stdout) {
+        child.stdout.on('data', (chunk: Buffer) => {
+          const captured = captureChunk(
+            stdout,
+            chunk,
+            request.captureOutput,
+            request.maxOutputBytes
+          )
+          stdout = captured.output
+          outputTruncated ||= captured.truncated
+        })
+      }
 
-      child.stderr.on('data', (chunk: Buffer) => {
-        const captured = captureChunk(stderr, chunk, request.captureOutput, request.maxOutputBytes)
-        stderr = captured.output
-        outputTruncated ||= captured.truncated
-      })
+      if (child.stderr) {
+        child.stderr.on('data', (chunk: Buffer) => {
+          const captured = captureChunk(
+            stderr,
+            chunk,
+            request.captureOutput,
+            request.maxOutputBytes
+          )
+          stderr = captured.output
+          outputTruncated ||= captured.truncated
+        })
+      }
 
       child.on('error', (spawnError: Error) => {
         error = spawnError
@@ -99,7 +113,7 @@ const createChildProcess = (
     cwd,
     env,
     detached: process.platform !== 'win32',
-    stdio: ['ignore', 'pipe', 'pipe'] as const,
+    stdio: ['ignore', 'pipe', 'pipe'] as ['ignore', 'pipe', 'pipe'],
   }
 
   if (pipefail) {
