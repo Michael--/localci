@@ -352,7 +352,7 @@ describe('PrettyReporter', () => {
     })
 
     expect(output).toContain('ETIMEDOUT')
-    expect(output).toContain('timed_out')
+    expect(output).toContain('timed out')
     expect(output).not.toContain('packages/pkg-0 build: Done')
   })
 
