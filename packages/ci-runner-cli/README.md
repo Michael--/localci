@@ -245,6 +245,7 @@ Profiles are command-line presets often used by integrations (for example the VS
 
 - `enabled` (default `true`): temporarily disable a step without removing it.
 - `optional` (default `false`): failed step is marked as skipped and does not fail the run.
+- `pipefail` (default `false`): make `a | b` fail when `a` fails; requires Bash on the runner.
 
 ## Output Modes
 
@@ -253,6 +254,8 @@ Profiles are command-line presets often used by integrations (for example the VS
 - `parseMetrics` defaults to `false`; enable it only when tool-specific output metrics are useful.
 - `captureOutput` can disable stdout/stderr retention without affecting the pipeline result.
 - `maxOutputBytes` limits each captured stream and sets `outputTruncated` when reached.
+- `pipefail: true` executes the step with Bash `pipefail` so every command in a shell pipeline
+  contributes to the exit result.
 
 ## Exit Behavior
 

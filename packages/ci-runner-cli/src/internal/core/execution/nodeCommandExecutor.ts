@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process'
+import { spawn, type ChildProcess } from 'node:child_process'
 
 import type {
   CommandTermination,
@@ -18,12 +18,7 @@ export const createNodeCommandExecutor = (): CommandExecutor => {
 
     return await new Promise<CommandExecutionResult>((resolve) => {
       const env: NodeJS.ProcessEnv = { ...process.env, ...request.env }
-      const child = spawn(request.command, {
-        cwd: request.cwd,
-        env,
-        shell: true,
-        stdio: ['ignore', 'pipe', 'pipe'],
-      })
+      const child = createChildProcess(request.command, request.pipefail, request.cwd, env)
 
       let stdout = ''
       let stderr = ''
@@ -31,12 +26,16 @@ export const createNodeCommandExecutor = (): CommandExecutor => {
       let timedOut = false
       let error: unknown
       let closed = false
+      let forceKillHandle: NodeJS.Timeout | null = null
 
       const timeoutHandle =
         typeof request.timeoutMs === 'number' && request.timeoutMs > 0
           ? setTimeout(() => {
               timedOut = true
-              child.kill('SIGTERM')
+              terminateProcessTree(child, 'SIGTERM')
+              forceKillHandle = setTimeout(() => {
+                terminateProcessTree(child, 'SIGKILL')
+              }, 5000)
             }, request.timeoutMs)
           : null
 
@@ -65,6 +64,9 @@ export const createNodeCommandExecutor = (): CommandExecutor => {
         if (timeoutHandle) {
           clearTimeout(timeoutHandle)
         }
+        if (forceKillHandle) {
+          clearTimeout(forceKillHandle)
+        }
 
         const durationMs = Date.now() - startedAt
         const termination = createTermination(timedOut, exitCode, signal, error)
@@ -85,6 +87,39 @@ export const createNodeCommandExecutor = (): CommandExecutor => {
       })
     })
   }
+}
+
+const createChildProcess = (
+  command: string,
+  pipefail: boolean | undefined,
+  cwd: string,
+  env: NodeJS.ProcessEnv
+): ChildProcess => {
+  const options = {
+    cwd,
+    env,
+    detached: process.platform !== 'win32',
+    stdio: ['ignore', 'pipe', 'pipe'] as const,
+  }
+
+  if (pipefail) {
+    return spawn('bash', ['-o', 'pipefail', '-c', command], options)
+  }
+
+  return spawn(command, { ...options, shell: true })
+}
+
+const terminateProcessTree = (child: ChildProcess, signal: NodeJS.Signals): void => {
+  if (process.platform !== 'win32' && child.pid !== undefined) {
+    try {
+      process.kill(-child.pid, signal)
+      return
+    } catch {
+      // Fall back to signalling the shell process when its group is unavailable.
+    }
+  }
+
+  child.kill(signal)
 }
 
 const captureChunk = (

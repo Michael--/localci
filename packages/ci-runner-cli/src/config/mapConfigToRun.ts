@@ -42,6 +42,8 @@ export interface MappedPipelineRunOptions {
   readonly captureOutput?: boolean
   /** Maximum captured stdout and stderr bytes per stream. */
   readonly maxOutputBytes?: number
+  /** Makes shell pipelines fail when any command in the pipeline fails. */
+  readonly pipefail?: boolean
 }
 
 /**
@@ -145,6 +147,7 @@ const mapStep = (step: CliConfigStep, runCwd: string): MappedPipelineStep => {
     timeoutMs: step.timeoutMs,
     captureOutput: step.captureOutput,
     maxOutputBytes: step.maxOutputBytes,
+    pipefail: step.pipefail,
     retry: step.retry,
   }
 }

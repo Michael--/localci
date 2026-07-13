@@ -91,6 +91,7 @@ export class PipelineRunner {
         timeoutMs: step.timeoutMs,
         captureOutput: step.captureOutput ?? this.options.captureOutput,
         maxOutputBytes: step.maxOutputBytes ?? this.options.maxOutputBytes,
+        pipefail: step.pipefail,
       })
 
       lastExecution = execution

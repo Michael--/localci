@@ -105,6 +105,7 @@ describe('mapConfigToRun', () => {
           command: 'pnpm run build',
           captureOutput: true,
           maxOutputBytes: 128,
+          pipefail: true,
         },
       ],
     }
@@ -116,6 +117,7 @@ describe('mapConfigToRun', () => {
     expect(runConfig.steps[0]).toMatchObject({
       captureOutput: true,
       maxOutputBytes: 128,
+      pipefail: true,
     })
   })
 

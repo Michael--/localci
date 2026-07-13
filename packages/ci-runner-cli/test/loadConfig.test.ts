@@ -101,7 +101,15 @@ describe('loadCiRunnerConfig', () => {
           captureOutput: false,
           maxOutputBytes: 1024,
         },
-        steps: [{ id: 'lint', name: 'Lint', command: 'pnpm run lint', captureOutput: true }],
+        steps: [
+          {
+            id: 'lint',
+            name: 'Lint',
+            command: 'pnpm run lint',
+            captureOutput: true,
+            pipefail: true,
+          },
+        ],
       }),
       'utf8'
     )
@@ -116,6 +124,7 @@ describe('loadCiRunnerConfig', () => {
       maxOutputBytes: 1024,
     })
     expect(loaded.config.steps[0]?.captureOutput).toBe(true)
+    expect(loaded.config.steps[0]?.pipefail).toBe(true)
   })
 
   it('loads named targets from config', async () => {

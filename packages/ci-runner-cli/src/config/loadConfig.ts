@@ -169,6 +169,7 @@ const parseConfigStep = (value: unknown, index: number): CliConfigStep => {
   const timeoutMs = parseOptionalNumber(value.timeoutMs, `steps[${index}].timeoutMs`)
   const captureOutput = parseOptionalBoolean(value.captureOutput, `steps[${index}].captureOutput`)
   const maxOutputBytes = parseOptionalNumber(value.maxOutputBytes, `steps[${index}].maxOutputBytes`)
+  const pipefail = parseOptionalBoolean(value.pipefail, `steps[${index}].pipefail`)
   const retry = parseOptionalRetry(value.retry, `steps[${index}].retry`)
   const when = parseOptionalCondition(value.when, `steps[${index}].when`)
 
@@ -183,6 +184,7 @@ const parseConfigStep = (value: unknown, index: number): CliConfigStep => {
     timeoutMs,
     captureOutput,
     maxOutputBytes,
+    pipefail,
     retry,
     when,
   }

@@ -64,6 +64,8 @@ export interface CliConfigStep {
   readonly captureOutput?: boolean
   /** Maximum captured stdout and stderr bytes per stream. */
   readonly maxOutputBytes?: number
+  /** Makes shell pipelines fail when any command in the pipeline fails. */
+  readonly pipefail?: boolean
   /** Retry policy for this step. */
   readonly retry?: StepRetryPolicy
   /** Optional execution condition. */
