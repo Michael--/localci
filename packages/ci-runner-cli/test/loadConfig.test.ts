@@ -127,6 +127,41 @@ describe('loadCiRunnerConfig', () => {
     expect(loaded.config.steps[0]?.pipefail).toBe(true)
   })
 
+  it('loads retry policy by termination reason', async () => {
+    const directory = await mkdtemp(resolve(tmpdir(), 'ci-runner-cli-retry-'))
+    createdDirectories.push(directory)
+
+    await writeFile(
+      resolve(directory, 'ci.config.json'),
+      JSON.stringify({
+        steps: [
+          {
+            id: 'test',
+            name: 'Test',
+            command: 'pnpm run test',
+            retry: {
+              maxAttempts: 2,
+              retryOnTimeout: true,
+              retryOnSignal: true,
+              retryOnSpawnFailure: true,
+            },
+          },
+        ],
+      }),
+      'utf8'
+    )
+
+    const loaded = await loadCiRunnerConfig(directory)
+
+    expect(loaded.config.steps[0]?.retry).toEqual({
+      maxAttempts: 2,
+      delayMs: undefined,
+      retryOnTimeout: true,
+      retryOnSignal: true,
+      retryOnSpawnFailure: true,
+    })
+  })
+
   it('loads named targets from config', async () => {
     const directory = await mkdtemp(resolve(tmpdir(), 'ci-runner-cli-targets-'))
     createdDirectories.push(directory)

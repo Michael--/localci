@@ -339,11 +339,18 @@ const parseOptionalRetry = (value: unknown, path: string): CliConfigStep['retry'
   const maxAttempts = parseRequiredNumber(value.maxAttempts, `${path}.maxAttempts`)
   const delayMs = parseOptionalNumber(value.delayMs, `${path}.delayMs`)
   const retryOnTimeout = parseOptionalBoolean(value.retryOnTimeout, `${path}.retryOnTimeout`)
+  const retryOnSignal = parseOptionalBoolean(value.retryOnSignal, `${path}.retryOnSignal`)
+  const retryOnSpawnFailure = parseOptionalBoolean(
+    value.retryOnSpawnFailure,
+    `${path}.retryOnSpawnFailure`
+  )
 
   return {
     maxAttempts,
     delayMs,
     retryOnTimeout,
+    retryOnSignal,
+    retryOnSpawnFailure,
   }
 }
 

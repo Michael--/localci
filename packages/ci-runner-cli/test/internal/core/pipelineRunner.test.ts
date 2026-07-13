@@ -165,6 +165,35 @@ describe('PipelineRunner', () => {
     ])
   })
 
+  it('retries signal termination only when explicitly configured', async () => {
+    const runner = createPipelineRunner({
+      steps: [
+        {
+          id: 'integration',
+          name: 'Integration',
+          command: 'integration',
+          retry: { maxAttempts: 2, retryOnSignal: true },
+        },
+      ],
+      executor: createSequenceExecutor([
+        {
+          ...failedResult(),
+          exitCode: null,
+          signal: 'SIGTERM',
+          stdout: '',
+          stderr: '',
+        },
+        successResult(),
+      ]),
+      sleep: async (): Promise<void> => undefined,
+    })
+
+    const result = await runner.run()
+
+    expect(result.steps[0]?.status).toBe('passed')
+    expect(result.steps[0]?.attempts).toBe(2)
+  })
+
   it('stops after first hard failure when continueOnError is false', async () => {
     const runner = createPipelineRunner({
       steps: [

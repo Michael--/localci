@@ -107,13 +107,10 @@ export class PipelineRunner {
         })
       }
 
-      const timedOut = execution.timedOut
-      const canRetryTimeout = retryPolicy.retryOnTimeout && timedOut
-      const canRetryFailure = !timedOut
       const canRetry =
         attempts < retryPolicy.maxAttempts &&
-        (canRetryFailure || canRetryTimeout) &&
-        retryPolicy.maxAttempts > 1
+        retryPolicy.maxAttempts > 1 &&
+        canRetryTermination(getTermination(execution), retryPolicy)
 
       if (canRetry) {
         if (retryPolicy.delayMs > 0) {
@@ -275,15 +272,21 @@ const normalizeRetryPolicy = (
   maxAttempts: number
   delayMs: number
   retryOnTimeout: boolean
+  retryOnSignal: boolean
+  retryOnSpawnFailure: boolean
 } => {
   const maxAttempts = Math.max(1, step.retry?.maxAttempts ?? 1)
   const delayMs = Math.max(0, step.retry?.delayMs ?? 0)
   const retryOnTimeout = step.retry?.retryOnTimeout ?? false
+  const retryOnSignal = step.retry?.retryOnSignal ?? false
+  const retryOnSpawnFailure = step.retry?.retryOnSpawnFailure ?? false
 
   return {
     maxAttempts,
     delayMs,
     retryOnTimeout,
+    retryOnSignal,
+    retryOnSpawnFailure,
   }
 }
 
@@ -336,5 +339,27 @@ const getTermination = (execution: CommandExecutionResult): CommandTermination =
     kind: execution.exitCode === 0 ? 'succeeded' : 'exited_nonzero',
     exitCode: execution.exitCode,
     signal: execution.signal,
+  }
+}
+
+const canRetryTermination = (
+  termination: CommandTermination,
+  policy: {
+    readonly retryOnTimeout: boolean
+    readonly retryOnSignal: boolean
+    readonly retryOnSpawnFailure: boolean
+  }
+): boolean => {
+  switch (termination.kind) {
+    case 'exited_nonzero':
+      return true
+    case 'timed_out':
+      return policy.retryOnTimeout
+    case 'terminated_by_signal':
+      return policy.retryOnSignal
+    case 'spawn_failed':
+      return policy.retryOnSpawnFailure
+    case 'succeeded':
+      return false
   }
 }

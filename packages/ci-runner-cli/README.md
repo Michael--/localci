@@ -114,7 +114,9 @@ Example:
       "retry": {
         "maxAttempts": 2,
         "delayMs": 250,
-        "retryOnTimeout": false
+        "retryOnTimeout": false,
+        "retryOnSignal": false,
+        "retryOnSpawnFailure": false
       },
       "when": {
         "env": {
@@ -256,6 +258,8 @@ Profiles are command-line presets often used by integrations (for example the VS
 - `maxOutputBytes` limits each captured stream and sets `outputTruncated` when reached.
 - `pipefail: true` executes the step with Bash `pipefail` so every command in a shell pipeline
   contributes to the exit result.
+- Retries apply to non-zero exit codes by default. Timeouts, signal termination, and spawn failures
+  require their respective `retryOn...` option.
 
 ## Exit Behavior
 

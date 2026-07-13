@@ -26,6 +26,10 @@ export interface StepRetryPolicy {
   readonly delayMs?: number
   /** When true, retries are also allowed after timeout failures. */
   readonly retryOnTimeout?: boolean
+  /** When true, retries are also allowed after signal termination. */
+  readonly retryOnSignal?: boolean
+  /** When true, retries are also allowed after process creation failures. */
+  readonly retryOnSpawnFailure?: boolean
 }
 
 /**
